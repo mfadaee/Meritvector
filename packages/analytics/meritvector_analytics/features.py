@@ -17,17 +17,12 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from meritvector_analytics.measurement import load_job_family
 from meritvector_shared import EXCLUDED_VALIDATION_STATUSES, FORBIDDEN_MODEL_COLUMNS
 
-CONTEXT_NUMERIC = [
-    "technical_complexity",
-    "dependency_count",
-    "resource_constraint",
-    "scope_changes_to_date",
-    "team_size",
-    "size_band",
-]
-CONTEXT_CATEGORICAL = ["environment", "maturity", "job_family"]
+# Context-model covariates come from the job-family specification (config/job_families/pmo/family.yaml),
+# not from code: every dimension with status "modelled" enters the model.
+CONTEXT_NUMERIC, CONTEXT_CATEGORICAL = load_job_family("pmo").context_covariates()
 ON_TIME_THRESHOLD_PCT = 5.0
 # Right-censoring guard: a milestone planned recently is only observed if it finished early or on time,
 # so recent achieved milestones are an optimistic sample. Exclude milestones planned within this window.

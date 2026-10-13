@@ -20,6 +20,7 @@ dependencies = [
     "uvicorn>=0.30",
     "SQLAlchemy>=2.0.30",
     "psycopg[binary]>=3.2",
+    "PyYAML>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -30,9 +31,6 @@ meritvector = "meritvector_api.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["packages/shared", "packages/analytics", "packages/coordinator", "packages/connectors", "apps/api"]
-
-[tool.setuptools.package-data]
-"meritvector_analytics.config" = ["*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -51,6 +49,8 @@ ignore = ["S101", "S311", "B008"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S"]
+"research/references/library.py" = ["E501"]  # bibliographic data
+"scripts/render_research_docs.py" = ["E501"]  # document text
 
 [tool.ruff.lint.isort]
 known-first-party = ["meritvector_shared", "meritvector_analytics", "meritvector_coordinator", "meritvector_connectors", "meritvector_api"]

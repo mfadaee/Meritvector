@@ -123,6 +123,18 @@ Full details: [MODEL_CARD](docs/research/MODEL_CARD.md).
   sustained improvers, although the synthetic data contains 25.
 * Estimates are adjusted associations, not causal effects; unmeasured context remains in them.
 
+## Research foundation (Phase 2)
+
+Measurement definitions live outside the code: [ontology](config/measurement/ontology.yaml) (9 constructs),
+[PMO specification](config/job_families/pmo/family.yaml) (context, responsibility and outcome dimensions, metric
+definitions, competencies), an [illustrative engineering family](config/job_families/engineering_example/family.yaml),
+registered [questions](config/research/questions.yaml) and [hypotheses](config/research/hypotheses.yaml), and a
+checked [evidence library](research/references/library.json). See
+[RESEARCH_FOUNDATION](docs/research/RESEARCH_FOUNDATION.md), [LITERATURE_REVIEW](docs/research/LITERATURE_REVIEW.md),
+[MEASUREMENT_THEORY](docs/research/MEASUREMENT_THEORY.md), [VALIDITY_FRAMEWORK](docs/research/VALIDITY_FRAMEWORK.md),
+[GAP_ANALYSIS](docs/architecture/GAP_ANALYSIS.md), [PRIORITISATION](docs/PRIORITISATION.md) and
+[DEVELOPMENT_PROGRESS](docs/DEVELOPMENT_PROGRESS.md).
+
 ## Documentation
 
 [Product vision](docs/PRODUCT_VISION.md) · [Architecture](docs/architecture/ARCHITECTURE.md) ·

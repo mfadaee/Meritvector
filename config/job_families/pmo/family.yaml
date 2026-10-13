@@ -1,0 +1,210 @@
+# PMO / TPM measurement specification. Editable; validated against config/job_families/schema.json.
+# status of a dimension: modelled (used in the context model) | recorded (stored and shown, not modelled)
+#                        | planned (defined, no data source yet)
+schema_version: "1.0"
+id: pmo
+name: Project, programme and technical programme management
+version: "2026.2"
+status: active
+description: >-
+  First MeritVector domain module. Distinguishes project outcome, employee responsibility,
+  employee contribution and project environment. Project scale is never treated as performance.
+context_model:
+  include_role: true      # adds job_family as a covariate
+  time_trend: true        # adds month_index for organisation-wide drift
+role_taxonomy:
+  - id: project_manager
+    label: Project manager
+    levels: [{id: P2, label: Project manager}, {id: P3, label: Senior project manager}, {id: P4, label: Lead project manager}]
+  - id: technical_project_manager
+    label: Technical project / programme manager
+    levels: [{id: T2, label: Technical PM}, {id: T3, label: Senior technical PM}, {id: T4, label: Principal technical PM}]
+  - id: program_manager
+    label: Programme manager
+    levels: [{id: M5, label: Programme manager}, {id: M6, label: Senior programme manager}]
+
+context_dimensions:
+  - {id: budget_scope, label: Budget and commercial scope, construct: complexity, field: size_band, scale: {type: ordinal, min: 1, max: 3}, status: modelled, source: pmo_register, description: Approved size and budget band at kick-off (1 small – 3 large). Scale is context — never credit.}
+  - {id: technical_complexity, label: Technical complexity, construct: complexity, field: technical_complexity, scale: {type: ordinal, min: 1, max: 5}, status: modelled, source: pmo_register, description: PMO complexity rubric at kick-off.}
+  - {id: schedule_criticality, label: Schedule criticality, construct: complexity, field: schedule_criticality, scale: {type: ordinal, min: 1, max: 3}, status: recorded, source: pmo_register, description: Hard external deadline (3) to flexible (1).}
+  - {id: organisational_visibility, label: Organisational visibility, construct: complexity, field: visibility_level, scale: {type: ordinal, min: 1, max: 3}, status: recorded, source: pmo_register, description: Executive attention on the project. Context for opportunity and rating bias — never credit.}
+  - {id: stakeholder_complexity, label: Stakeholder complexity, construct: complexity, field: stakeholder_groups, scale: {type: count, min: 1}, status: recorded, source: pmo_register, description: Number of distinct stakeholder groups.}
+  - {id: cross_functional_dependencies, label: Cross-functional dependencies, construct: complexity, field: dependency_count, scale: {type: count, min: 0}, status: modelled, source: jira, description: Dependencies on other teams registered at kick-off.}
+  - {id: resource_availability, label: Resource availability, construct: complexity, field: resource_constraint, scale: {type: continuous, min: 0, max: 1}, status: modelled, source: pmo_register, description: Staffing shortfall (0 = fully resourced). Higher = less available.}
+  - {id: scope_volatility, label: Scope volatility, construct: complexity, field: scope_changes_to_date, scale: {type: count, min: 0}, status: modelled, source: jira, description: Approved scope changes before the milestone's planned date (time-varying).}
+  - {id: technical_uncertainty, label: Technical uncertainty, construct: complexity, field: technical_uncertainty, scale: {type: ordinal, min: 1, max: 3}, status: recorded, source: pmo_register, description: Novelty of technology for the organisation.}
+  - {id: operational_criticality, label: Operational and safety criticality, construct: complexity, field: operational_criticality, scale: {type: ordinal, min: 1, max: 3}, status: recorded, source: pmo_register, description: Consequence of failure in operation.}
+  - {id: geographic_distribution, label: Geographic distribution, construct: complexity, field: sites, scale: {type: count, min: 1}, status: recorded, source: pmo_register, description: Number of delivery locations.}
+  - {id: vendor_complexity, label: Vendor complexity, construct: complexity, field: vendor_count, scale: {type: count, min: 0}, status: recorded, source: pmo_register, description: Contracted vendors on the critical path.}
+  - {id: regulatory_constraints, label: Regulatory constraints, construct: complexity, field: environment, scale: {type: categorical, levels: [internal, customer_facing, regulated]}, status: modelled, source: pmo_register, description: Delivery environment; regulated adds approval gates.}
+  - {id: integration_difficulty, label: Integration difficulty, construct: complexity, field: integration_points, scale: {type: count, min: 0}, status: recorded, source: pmo_register, description: Systems to integrate with.}
+  - {id: team_size, label: Team size, construct: complexity, field: team_size, scale: {type: count, min: 1}, status: modelled, source: pmo_register, description: People in the delivery team.}
+  - {id: delivery_maturity, label: Delivery maturity, construct: complexity, field: maturity, scale: {type: categorical, levels: [greenfield, established]}, status: modelled, source: pmo_register, description: Greenfield initiative vs established delivery capability.}
+
+responsibility_dimensions:
+  - {id: decision_authority, label: Actual decision authority, construct: responsibility, field: decision_authority, scale: {type: ordinal, min: 1, max: 4}, status: recorded, source: pmo_register, description: "1 = recommends; 4 = decides within budget and scope."}
+  - {id: influence_type, label: Direct versus indirect influence, construct: responsibility, field: influence_type, scale: {type: categorical, levels: [direct, indirect]}, status: recorded, source: pmo_register, description: Whether delivery teams report to the person.}
+  - {id: accountable_workstreams, label: Accountable workstreams, construct: responsibility, field: workstreams, scale: {type: count, min: 1}, status: recorded, source: pmo_register, description: Workstreams the person is accountable for.}
+  - {id: budget_accountability, label: Budget accountability, construct: responsibility, field: budget_accountable, scale: {type: boolean}, status: recorded, source: pmo_register, description: Holds budget authority (not just reporting).}
+  - {id: risk_ownership, label: Risk ownership, construct: responsibility, field: risks_owned, scale: {type: count, min: 0}, status: recorded, source: pmo_register, description: Risks in the RAID log owned by the person.}
+  - {id: teams_coordinated, label: Teams coordinated, construct: responsibility, field: teams_coordinated, scale: {type: count, min: 1}, status: recorded, source: pmo_register, description: Distinct teams coordinated.}
+  - {id: scope_level, label: Strategic versus tactical scope, construct: responsibility, field: scope_level, scale: {type: categorical, levels: [tactical, mixed, strategic]}, status: recorded, source: pmo_register, description: Programme-level strategic scope vs tactical delivery.}
+  - {id: executive_exposure, label: Executive stakeholder exposure, construct: responsibility, field: executive_exposure, scale: {type: ordinal, min: 1, max: 3}, status: recorded, source: pmo_register, description: Frequency of executive steering interaction.}
+  - {id: technical_judgement_required, label: Technical judgement requirements, construct: responsibility, field: technical_judgement_required, scale: {type: ordinal, min: 1, max: 3}, status: recorded, source: pmo_register, description: Need for technical trade-off decisions.}
+  - {id: autonomy, label: Degree of autonomy, construct: responsibility, field: autonomy, scale: {type: ordinal, min: 1, max: 3}, status: recorded, source: pmo_register, description: Freedom to choose approach.}
+
+outcome_dimensions:
+  - {id: delivery_objectives, label: Delivery objectives achieved, construct: outcomes, field: benefits_case_met, direction: higher_is_better, status: recorded, source: pmo_register, description: Benefits case met at closure.}
+  - {id: deliverable_quality, label: Quality of accepted deliverables, construct: quality, field: quality_score, direction: higher_is_better, status: modelled, source: ms_graph, description: Review score 1–5 at acceptance.}
+  - {id: schedule_performance, label: Schedule performance, construct: outcomes, field: schedule_variance_pct, direction: lower_is_better, status: modelled, source: jira, description: Milestone slip as % of planned interval.}
+  - {id: cost_performance, label: Cost performance, construct: outcomes, field: budget_variance_pct, direction: lower_is_better, status: recorded, source: pmo_register, description: Budget variance at closure.}
+  - {id: risk_mitigation, label: Risk mitigation effectiveness, construct: outcomes, field: risk_mitigation_rate, direction: higher_is_better, status: recorded, source: pmo_register, description: Risks mitigated / identified.}
+  - {id: dependency_resolution, label: Dependency resolution, construct: outcomes, field: dependency_median_days, direction: lower_is_better, status: recorded, source: jira, description: Median days dependencies stay open.}
+  - {id: stakeholder_outcomes, label: Stakeholder outcomes, construct: outcomes, field: stakeholder_feedback_mean, direction: higher_is_better, status: recorded, source: stakeholder_survey, description: "Survey score — perception-based and visibility-biased."}
+  - {id: operational_handover, label: Sustainable operational handover, construct: quality, field: null, direction: higher_is_better, status: planned, source: null, description: Operations acceptance and post-handover incidents (no data source in v0.2).}
+  - {id: organisational_improvements, label: Organisational improvements, construct: outcomes, field: null, direction: higher_is_better, status: planned, source: null, description: Documented process improvements adopted elsewhere (no data source yet).}
+  - {id: learning_adaptation, label: Evidence of learning and adaptation, construct: development, field: trend_status, direction: higher_is_better, status: recorded, source: derived, description: Longitudinal change in context-adjusted signal under changing conditions.}
+
+evidence_sources:
+  - {id: jira, system: Atlassian Jira, data_category: assessment_evidence, categories: [task_created, task_completed, milestone_achieved, blocker_raised, blocker_resolved, scope_change_approved, dependency_registered, dependency_resolved]}
+  - {id: asana, system: Asana, data_category: assessment_evidence, categories: [task_created, task_completed, milestone_achieved]}
+  - {id: monday, system: monday.com, data_category: assessment_evidence, categories: [task_created, task_completed, milestone_achieved]}
+  - {id: ms_graph, system: Microsoft Graph, data_category: assessment_evidence, categories: [document_reviewed]}
+  - {id: pmo_register, system: PMO register, data_category: assessment_evidence, categories: [complexity_assessment, resource_limitation, risk_identified, risk_mitigated, issue_raised, schedule_changed, project_outcome]}
+  - {id: stakeholder_survey, system: Stakeholder survey, data_category: assessment_evidence, categories: [stakeholder_feedback]}
+  - {id: ms_graph_activity, system: Microsoft Graph (metadata), data_category: diagnostic_activity, categories: [activity_summary]}
+
+metrics:
+  - id: on_time_rate
+    label: On-time milestone rate
+    construct: outcomes
+    definition: Share of achieved milestones finishing within 5% of their planned interval.
+    computation: count(schedule_variance_pct <= 5) / count(achieved milestones), milestones planned >= 90 days before the as-of date.
+    unit: proportion
+    direction: higher_is_better
+    data_sources: [jira, asana, monday]
+    assumptions: [Planned dates are the original baseline or a recorded re-baseline.]
+    limitations: [Raw — mixes contribution with project difficulty; recent late milestones excluded (right-censoring).]
+    prohibited_interpretations: [comparing people without context]
+    plain_language: How often milestones landed on time. It does not account for how hard the projects were.
+  - id: schedule_variance_pct
+    label: Schedule variance
+    construct: outcomes
+    definition: Milestone slip as a percentage of its planned interval (negative = early).
+    computation: 100 × (actual_date − planned_date) / planned interval days.
+    unit: percent
+    direction: lower_is_better
+    data_sources: [jira, asana, monday]
+    assumptions: [Intervals reflect the plan at the time.]
+    limitations: [Quantised by day; heavy-tailed.]
+    prohibited_interpretations: [individual blame for slips]
+    plain_language: How late or early milestones were, relative to the time planned for them.
+  - id: adjusted_schedule_estimate
+    label: Context-adjusted delivery estimate
+    construct: contribution
+    definition: Employee random intercept from a mixed model of schedule variance on measured context, sign-flipped so positive = less slippage than conditions predict, with a 95% conditional interval.
+    computation: REML linear mixed model (employee intercept + project variance component); BLUP and conditional SE.
+    unit: percentage points
+    direction: higher_is_better
+    data_sources: [engineered milestone features]
+    assumptions: [Measured context captures the main confounders; linear additive effects; approximate normality.]
+    limitations: [Association, not causation; shrinks towards zero; abstains when n < 6 or the interval is wide.]
+    prohibited_interpretations: [ranking, promotion or dismissal decisions, causal attribution]
+    plain_language: Whether milestones went better or worse than the project conditions would lead us to expect — with the range of plausible values.
+  - id: context_expected_variance
+    label: Context-expected schedule variance
+    construct: complexity
+    definition: Mean schedule variance the context model predicts for the person's milestones.
+    computation: Mean OLS fitted value (context only, no person term).
+    unit: percent
+    direction: neutral
+    data_sources: [pmo_register, jira]
+    assumptions: [Context model is reasonably specified.]
+    limitations: [Only measured conditions.]
+    prohibited_interpretations: [difficulty as performance credit]
+    plain_language: How much slippage the conditions alone would predict — a measure of how hard the work was.
+  - id: risk_mitigation_rate
+    label: Risk mitigation rate
+    construct: outcomes
+    definition: Risks mitigated divided by risks identified on projects the person led.
+    computation: count(risk_mitigated) / count(risk_identified).
+    unit: proportion
+    direction: higher_is_better
+    data_sources: [pmo_register]
+    assumptions: [RAID logs are maintained consistently.]
+    limitations: [Teams mitigate risks; attribution to the lead is not automatic.]
+    prohibited_interpretations: [sole credit to the project manager]
+    plain_language: How many of the risks that were raised were dealt with before they caused harm.
+  - id: activity_volume
+    label: Activity volume (diagnostic only)
+    construct: activity
+    definition: Monthly meetings attended, e-mails sent and hours recorded (synthetic metadata).
+    computation: Monthly means.
+    unit: count
+    direction: neutral
+    data_sources: [ms_graph_activity]
+    assumptions: []
+    limitations: [Measures busyness, culture and workload — not contribution.]
+    prohibited_interpretations: [higher activity means higher performance, any use in individual estimates]
+    plain_language: How busy someone looked. Shown only to demonstrate why it is not used.
+  - id: project_health
+    label: Project health (RAG)
+    construct: outcomes
+    definition: Rule-based red/amber/green from the registers.
+    computation: red if any overdue milestone or >= 2 open high risks; amber if latest slip > 15%, >= 2 open dependencies or any open high risk; else green.
+    unit: category
+    direction: neutral
+    data_sources: [pmo_register, jira]
+    assumptions: [Registers are current.]
+    limitations: [Transparent rule, not a prediction.]
+    prohibited_interpretations: [rating the project manager]
+    plain_language: A simple traffic-light status based on overdue milestones, serious risks and open dependencies.
+  - id: milestone_risk_30d
+    label: 30-day milestone risk
+    construct: outcomes
+    definition: Calibrated probability that a milestone due in the next 30 days slips more than 10% of its interval.
+    computation: Logistic regression on point-in-time project features; validated out of time.
+    unit: probability
+    direction: lower_is_better
+    data_sources: [pmo_register, jira]
+    assumptions: [Features available at prediction time only.]
+    limitations: [Project-level early warning, not an assessment of any person.]
+    prohibited_interpretations: [employee evaluation]
+    plain_language: The chance that an upcoming milestone will slip, so teams can act early.
+
+competencies:
+  window_months: 12
+  note: >-
+    Example framework for the synthetic organisation. Evidence counts show what work has demonstrated;
+    an evidence gap is not a deficiency and may reflect lack of opportunity.
+  items:
+    project_delivery: {label: Project delivery, rules: [milestone_on_time, benefits_case_met], description: "Milestones achieved within 5% of their baseline interval; closed projects meeting their benefits case."}
+    technical_judgement: {label: Technical judgement, rules: [first_pass_approval_complex], opportunity_rule: had_complex_project, description: "Deliverables approved first time on projects assessed at technical complexity 4–5."}
+    ownership: {label: Ownership, rules: [blocker_resolved_fast, dependency_resolved], description: "Blockers resolved within 7 days; external dependencies driven to resolution."}
+    stakeholder_management: {label: Stakeholder management, rules: [positive_stakeholder_feedback], perception_based: true, description: "Stakeholder survey scores of 4–5. Perception-based and known to be noisy; never sufficient on its own."}
+    risk_leadership: {label: Risk leadership, rules: [proactive_risk, risk_mitigated], description: "Risks identified before impact and mitigated through the RAID process."}
+    strategic_influence: {label: Strategic influence, rules: [scope_change_governed, programme_milestone], description: "Scope changes taken through formal change control; programme-level milestones delivered. Limited evidence sources."}
+    organisational_impact: {label: Organisational impact, rules: [cross_unit_dependency_resolved, benefits_case_met], description: "Cross-unit dependencies resolved; benefits realised at project closure."}
+  levels:
+    P2: {project_delivery: 4, ownership: 3, risk_leadership: 2, stakeholder_management: 1}
+    P3: {project_delivery: 6, ownership: 4, risk_leadership: 4, stakeholder_management: 2, technical_judgement: 1}
+    P4: {project_delivery: 8, ownership: 5, risk_leadership: 5, stakeholder_management: 2, strategic_influence: 1, organisational_impact: 2}
+    T2: {project_delivery: 4, ownership: 3, risk_leadership: 2, technical_judgement: 2}
+    T3: {project_delivery: 6, ownership: 4, risk_leadership: 3, technical_judgement: 3, stakeholder_management: 1}
+    T4: {project_delivery: 8, ownership: 5, risk_leadership: 4, technical_judgement: 4, strategic_influence: 1, organisational_impact: 2}
+    M5: {project_delivery: 4, risk_leadership: 4, stakeholder_management: 2, strategic_influence: 2, organisational_impact: 3}
+    M6: {project_delivery: 5, risk_leadership: 5, stakeholder_management: 3, strategic_influence: 3, organisational_impact: 4}
+
+validation_requirements:
+  - {id: leakage, description: "No hidden truth, protected attributes, ratings, activity or outcome-derived fields in features.", check: leakage_checks}
+  - {id: out_of_time, description: "Context + employee model beats global-mean and context-only baselines out of time.", check: out_of_time}
+  - {id: abstention, description: "No strong conclusion with fewer than 6 settled milestones.", check: abstention}
+  - {id: sensitivity, description: "Sensitivity to omitted context reported for every run.", check: sensitivity}
+  - {id: fairness, description: "Aggregated fairness audit with small-cell suppression.", check: fairness}
+  - {id: recovery, description: "On synthetic data, adjusted estimates recover hidden contribution better than raw metrics.", check: synthetic_recovery}
+
+dashboards:
+  - {id: portfolio_health, roles: [employee, manager, hr_reviewer, admin]}
+  - {id: team_development, roles: [manager, hr_reviewer]}
+  - {id: contribution_review, roles: [manager, hr_reviewer]}
+  - {id: research_laboratory, roles: [researcher, hr_reviewer, admin]}
