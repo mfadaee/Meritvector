@@ -1,0 +1,154 @@
+{
+  "$defs": {
+    "ConceptualModel": {
+      "additionalProperties": false,
+      "properties": {
+        "caveat": {
+          "title": "Caveat",
+          "type": "string"
+        },
+        "references": {
+          "items": {
+            "type": "string"
+          },
+          "title": "References",
+          "type": "array"
+        },
+        "statement": {
+          "title": "Statement",
+          "type": "string"
+        }
+      },
+      "required": [
+        "statement",
+        "caveat"
+      ],
+      "title": "ConceptualModel",
+      "type": "object"
+    },
+    "Construct": {
+      "additionalProperties": false,
+      "properties": {
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "confounders": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Confounders",
+          "type": "array"
+        },
+        "data_sources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Data Sources",
+          "type": "array"
+        },
+        "definition": {
+          "title": "Definition",
+          "type": "string"
+        },
+        "evidence_status": {
+          "enum": [
+            "established",
+            "reasonable_hypothesis",
+            "product_assumption"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "indicators": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Indicators",
+          "type": "array"
+        },
+        "intended_use": {
+          "title": "Intended Use",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "may_increase_merit": {
+          "title": "May Increase Merit",
+          "type": "boolean"
+        },
+        "prohibited_interpretations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Prohibited Interpretations",
+          "type": "array"
+        },
+        "references": {
+          "items": {
+            "type": "string"
+          },
+          "title": "References",
+          "type": "array"
+        },
+        "reliability": {
+          "title": "Reliability",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "definition",
+        "indicators",
+        "data_sources",
+        "assumptions",
+        "reliability",
+        "confounders",
+        "limitations",
+        "intended_use",
+        "prohibited_interpretations",
+        "may_increase_merit",
+        "evidence_status"
+      ],
+      "title": "Construct",
+      "type": "object"
+    }
+  },
+  "$id": "https://meritvector.invalid/schemas/Ontology/1.0",
+  "additionalProperties": false,
+  "properties": {
+    "conceptual_model": {
+      "$ref": "#/$defs/ConceptualModel"
+    },
+    "constructs": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Construct"
+      },
+      "title": "Constructs",
+      "type": "object"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "version",
+    "conceptual_model",
+    "constructs"
+  ],
+  "title": "Ontology",
+  "type": "object"
+}

@@ -1,0 +1,584 @@
+{
+  "$defs": {
+    "Competencies": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Competency"
+          },
+          "title": "Items",
+          "type": "object"
+        },
+        "levels": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object"
+          },
+          "title": "Levels",
+          "type": "object"
+        },
+        "note": {
+          "default": "",
+          "title": "Note",
+          "type": "string"
+        },
+        "window_months": {
+          "default": 12,
+          "title": "Window Months",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "levels"
+      ],
+      "title": "Competencies",
+      "type": "object"
+    },
+    "Competency": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "opportunity_rule": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Opportunity Rule"
+        },
+        "perception_based": {
+          "default": false,
+          "title": "Perception Based",
+          "type": "boolean"
+        },
+        "rules": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rules",
+          "type": "array"
+        }
+      },
+      "required": [
+        "label",
+        "rules",
+        "description"
+      ],
+      "title": "Competency",
+      "type": "object"
+    },
+    "ContextModel": {
+      "additionalProperties": false,
+      "properties": {
+        "include_role": {
+          "default": true,
+          "title": "Include Role",
+          "type": "boolean"
+        },
+        "time_trend": {
+          "default": true,
+          "title": "Time Trend",
+          "type": "boolean"
+        }
+      },
+      "title": "ContextModel",
+      "type": "object"
+    },
+    "Dashboard": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "roles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Roles",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "roles"
+      ],
+      "title": "Dashboard",
+      "type": "object"
+    },
+    "Dimension": {
+      "additionalProperties": false,
+      "properties": {
+        "construct": {
+          "title": "Construct",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "enum": [
+                "higher_is_better",
+                "lower_is_better",
+                "neutral"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Direction"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Field"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "scale": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Scale"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source"
+        },
+        "status": {
+          "enum": [
+            "modelled",
+            "recorded",
+            "planned"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "construct",
+        "field",
+        "status",
+        "source",
+        "description"
+      ],
+      "title": "Dimension",
+      "type": "object"
+    },
+    "EvidenceSource": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Categories",
+          "type": "array"
+        },
+        "data_category": {
+          "enum": [
+            "assessment_evidence",
+            "diagnostic_activity",
+            "org_reporting",
+            "assistance"
+          ],
+          "title": "Data Category",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "system": {
+          "title": "System",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "system",
+        "data_category",
+        "categories"
+      ],
+      "title": "EvidenceSource",
+      "type": "object"
+    },
+    "Level": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "title": "Level",
+      "type": "object"
+    },
+    "Metric": {
+      "additionalProperties": false,
+      "properties": {
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "computation": {
+          "title": "Computation",
+          "type": "string"
+        },
+        "construct": {
+          "title": "Construct",
+          "type": "string"
+        },
+        "data_sources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Data Sources",
+          "type": "array"
+        },
+        "definition": {
+          "title": "Definition",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "higher_is_better",
+            "lower_is_better",
+            "neutral"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "plain_language": {
+          "title": "Plain Language",
+          "type": "string"
+        },
+        "prohibited_interpretations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Prohibited Interpretations",
+          "type": "array"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "construct",
+        "definition",
+        "computation",
+        "unit",
+        "direction",
+        "data_sources",
+        "assumptions",
+        "limitations",
+        "prohibited_interpretations",
+        "plain_language"
+      ],
+      "title": "Metric",
+      "type": "object"
+    },
+    "Role": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "levels": {
+          "items": {
+            "$ref": "#/$defs/Level"
+          },
+          "title": "Levels",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "levels"
+      ],
+      "title": "Role",
+      "type": "object"
+    },
+    "Scale": {
+      "additionalProperties": false,
+      "properties": {
+        "levels": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Levels"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min"
+        },
+        "type": {
+          "enum": [
+            "ordinal",
+            "continuous",
+            "count",
+            "categorical",
+            "boolean"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "Scale",
+      "type": "object"
+    },
+    "ValidationRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "check": {
+          "title": "Check",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "description",
+        "check"
+      ],
+      "title": "ValidationRequirement",
+      "type": "object"
+    }
+  },
+  "$id": "https://meritvector.invalid/schemas/JobFamilySpec/1.0",
+  "additionalProperties": false,
+  "properties": {
+    "competencies": {
+      "$ref": "#/$defs/Competencies"
+    },
+    "context_dimensions": {
+      "items": {
+        "$ref": "#/$defs/Dimension"
+      },
+      "title": "Context Dimensions",
+      "type": "array"
+    },
+    "context_model": {
+      "$ref": "#/$defs/ContextModel"
+    },
+    "dashboards": {
+      "items": {
+        "$ref": "#/$defs/Dashboard"
+      },
+      "title": "Dashboards",
+      "type": "array"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "evidence_sources": {
+      "items": {
+        "$ref": "#/$defs/EvidenceSource"
+      },
+      "title": "Evidence Sources",
+      "type": "array"
+    },
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "metrics": {
+      "items": {
+        "$ref": "#/$defs/Metric"
+      },
+      "title": "Metrics",
+      "type": "array"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "outcome_dimensions": {
+      "items": {
+        "$ref": "#/$defs/Dimension"
+      },
+      "title": "Outcome Dimensions",
+      "type": "array"
+    },
+    "responsibility_dimensions": {
+      "items": {
+        "$ref": "#/$defs/Dimension"
+      },
+      "title": "Responsibility Dimensions",
+      "type": "array"
+    },
+    "role_taxonomy": {
+      "items": {
+        "$ref": "#/$defs/Role"
+      },
+      "title": "Role Taxonomy",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "active",
+        "illustrative"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "validation_requirements": {
+      "items": {
+        "$ref": "#/$defs/ValidationRequirement"
+      },
+      "title": "Validation Requirements",
+      "type": "array"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "version",
+    "status",
+    "description",
+    "role_taxonomy",
+    "context_dimensions",
+    "responsibility_dimensions",
+    "outcome_dimensions",
+    "evidence_sources",
+    "metrics",
+    "competencies",
+    "validation_requirements",
+    "dashboards"
+  ],
+  "title": "JobFamilySpec",
+  "type": "object"
+}

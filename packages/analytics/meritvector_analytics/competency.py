@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from importlib import resources
 from typing import Any
 
 import pandas as pd
@@ -18,11 +17,17 @@ import pandas as pd
 from meritvector_analytics.features import ON_TIME_THRESHOLD_PCT, FeatureSet
 
 
-def load_framework(path: str | None = None) -> dict[str, Any]:
+def load_framework(path: str | None = None, family_id: str = "pmo") -> dict[str, Any]:
+    """Competency framework from the job-family specification (``config/job_families/<id>/family.yaml``).
+
+    ``path`` may point at a legacy JSON framework file.
+    """
     if path:
         with open(path) as fh:
             return json.load(fh)
-    return json.loads(resources.files("meritvector_analytics.config").joinpath("competency_framework.json").read_text())
+    from meritvector_analytics.measurement import load_job_family
+
+    return load_job_family(family_id).competency_framework()
 
 
 def _p(ev: pd.DataFrame, key: str) -> pd.Series:

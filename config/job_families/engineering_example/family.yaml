@@ -1,0 +1,54 @@
+# Illustrative second job family — proves the schema is not PMO-specific.
+# Nothing here is implemented as a product; every dimension is "planned".
+schema_version: "1.0"
+id: engineering_example
+name: Software engineering (illustrative)
+version: "0.1"
+status: illustrative
+description: >-
+  Minimal example. Engineering performance differs from PMO delivery: outcomes are shared by teams,
+  activity metrics (commits, lines of code) are especially misleading, and code review is a key quality signal.
+role_taxonomy:
+  - id: software_engineer
+    label: Software engineer
+    levels: [{id: E2, label: Engineer}, {id: E3, label: Senior engineer}, {id: E4, label: Staff engineer}]
+context_dimensions:
+  - {id: codebase_complexity, label: Codebase complexity, construct: complexity, field: null, scale: {type: ordinal, min: 1, max: 5}, status: planned, source: null, description: Architectural complexity of the services owned.}
+  - {id: operational_load, label: Operational load, construct: complexity, field: null, scale: {type: continuous, min: 0}, status: planned, source: null, description: On-call pages per week for owned services.}
+  - {id: legacy_share, label: Legacy code share, construct: complexity, field: null, scale: {type: continuous, min: 0, max: 1}, status: planned, source: null, description: Share of work in legacy systems.}
+responsibility_dimensions:
+  - {id: service_ownership, label: Service ownership, construct: responsibility, field: null, scale: {type: count, min: 0}, status: planned, source: null, description: Production services the person is accountable for.}
+  - {id: design_authority, label: Design authority, construct: responsibility, field: null, scale: {type: ordinal, min: 1, max: 3}, status: planned, source: null, description: Approves designs for others.}
+outcome_dimensions:
+  - {id: change_failure_rate, label: Change failure rate, construct: quality, field: null, direction: lower_is_better, status: planned, source: null, description: Team-level share of deployments causing incidents (team outcome — not individual).}
+  - {id: review_quality, label: Code review outcomes, construct: quality, field: null, direction: higher_is_better, status: planned, source: null, description: Defects escaping reviewed changes.}
+evidence_sources:
+  - {id: git, system: Git hosting (planned), data_category: assessment_evidence, categories: []}
+  - {id: incident_tool, system: Incident management (planned), data_category: assessment_evidence, categories: []}
+metrics:
+  - id: commit_count
+    label: Commit count (diagnostic only)
+    construct: activity
+    definition: Commits per month.
+    computation: count(commits) / month.
+    unit: count
+    direction: neutral
+    data_sources: [git]
+    assumptions: []
+    limitations: [Rewards splitting work; unrelated to value delivered.]
+    prohibited_interpretations: [productivity, performance]
+    plain_language: How often someone committed code. Not a measure of contribution.
+competencies:
+  window_months: 12
+  note: Illustrative only.
+  items:
+    system_design: {label: System design, rules: [], description: Designs adopted by other teams.}
+    operational_excellence: {label: Operational excellence, rules: [], description: Incidents resolved and prevented.}
+  levels:
+    E2: {}
+    E3: {system_design: 1}
+    E4: {system_design: 2, operational_excellence: 2}
+validation_requirements:
+  - {id: team_attribution, description: "Team outcomes must not be attributed to individuals without verified attribution.", check: manual}
+dashboards:
+  - {id: research_laboratory, roles: [researcher]}

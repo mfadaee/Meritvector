@@ -1,0 +1,63 @@
+# Registered research questions. type: descriptive | predictive | causal | measurement | experimental
+version: "1.0"
+questions:
+  - id: RQ1
+    title: Are some people systematically assigned harder projects?
+    type: descriptive
+    workstream: eda
+    detail: Does the context-expected difficulty of a person's projects differ between people more than chance, and is it associated with their earlier raw results?
+    hypotheses: [H1]
+  - id: RQ2
+    title: How do project conditions relate to delivery outcomes?
+    type: descriptive
+    workstream: regression
+    detail: Which measured conditions are associated with schedule variance, and do simple and advanced models agree?
+    hypotheses: [H5, H6]
+  - id: RQ3
+    title: Do raw delivery metrics misrepresent individual contribution?
+    type: measurement
+    workstream: flagship
+    detail: How far do raw and context-adjusted readings disagree, and for whom?
+    hypotheses: [H2]
+  - id: RQ4
+    title: Is activity volume informative about contribution?
+    type: measurement
+    workstream: eda
+    detail: Are meetings, e-mails and hours associated with context-adjusted delivery evidence?
+    hypotheses: [H3]
+  - id: RQ5
+    title: Are manager ratings influenced by who the rater is?
+    type: measurement
+    workstream: hypothesis_testing
+    detail: After accounting for context-adjusted evidence, do ratings differ by rater (leniency) — Scenario C?
+    hypotheses: [H4]
+  - id: RQ6
+    title: Which projects are at elevated risk of missing a milestone in the next 30 days?
+    type: predictive
+    workstream: classification
+    detail: Project-level early warning from point-in-time features; never an assessment of people.
+    hypotheses: []
+  - id: RQ7
+    title: Are there recurring project operating environments?
+    type: descriptive
+    workstream: clustering
+    detail: Do stable clusters of project conditions exist, and what bottlenecks characterise them?
+    hypotheses: []
+  - id: RQ8
+    title: Does individual growth vary, and can it be detected?
+    type: descriptive
+    workstream: longitudinal
+    detail: Is there between-person variance in growth of the context-adjusted signal (random slopes)?
+    hypotheses: [H8]
+  - id: RQ9
+    title: Does more resource availability cause better delivery?
+    type: causal
+    workstream: causal
+    detail: Under an explicit DAG, what adjustment set is needed and how robust is the estimate to unmeasured confounding?
+    hypotheses: [H5]
+  - id: RQ10
+    title: Does access to the AI coordinator improve administrative follow-through?
+    type: experimental
+    workstream: experiments
+    detail: Randomised (simulated, consented) experiment on reporting timeliness and follow-up completion; power analysis first.
+    hypotheses: [H7]

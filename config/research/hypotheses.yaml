@@ -1,0 +1,80 @@
+# Pre-registered hypotheses executed by meritvector_analytics.research.hypotheses.
+# status: confirmatory (pre-specified test and alpha) | exploratory
+version: "1.0"
+alpha: 0.05
+families:
+  - {id: context_family, correction: holm, hypotheses: [H2, H5, H6]}
+  - {id: measurement_family, correction: holm, hypotheses: [H1, H3, H4]}
+hypotheses:
+  - id: H1
+    question: RQ1
+    status: confirmatory
+    h0: A person's raw on-time rate in their first year is not associated with the context-expected difficulty of their later projects.
+    h1: Earlier raw results are associated with later assignment difficulty.
+    unit: employee
+    test: spearman
+    variables: {x: first_year_on_time_rate, y: later_context_expected}
+    assumptions: [Monotone relationship; employees with projects in both periods.]
+  - id: H2
+    question: RQ3
+    status: confirmatory
+    h0: After contextual adjustment, employee-level delivery signal does not differ between business units.
+    h1: It differs between business units.
+    unit: employee
+    test: kruskal_anova
+    variables: {value: adjusted_signal, group: business_unit}
+    assumptions: [Independent employees; ANOVA reported alongside Kruskal–Wallis with Levene check.]
+  - id: H3
+    question: RQ4
+    status: confirmatory
+    h0: Meeting volume is not associated with context-adjusted delivery signal.
+    h1: Meeting volume is associated with it.
+    unit: employee
+    test: spearman
+    variables: {x: meetings_per_month, y: adjusted_signal}
+    assumptions: [Activity data are synthetic metadata counts.]
+  - id: H4
+    question: RQ5
+    status: confirmatory
+    h0: Manager ratings do not differ between raters after adjusting for the ratee's context-adjusted delivery evidence.
+    h1: Rater identity explains rating variance beyond evidence (leniency).
+    unit: rating
+    test: rater_effect_anova
+    variables: {rating: manager_rating, covariate: adjusted_signal, group: rater_id}
+    assumptions: [Ratings nested in raters; ANCOVA with rater as factor; partial eta² reported.]
+  - id: H5
+    question: RQ2
+    status: confirmatory
+    h0: Resource constraint is not associated with milestone schedule variance after adjusting for other measured conditions.
+    h1: It is associated (direction not pre-specified).
+    unit: milestone (clustered by project)
+    test: ols_cluster_coefficient
+    variables: {outcome: schedule_variance_pct, term: resource_constraint}
+    assumptions: [Linear association; project-clustered SEs; association, not causation.]
+  - id: H6
+    question: RQ2
+    status: confirmatory
+    h0: Mean project-level schedule variance does not differ between regulated and internal delivery environments.
+    h1: It differs.
+    unit: project (milestones aggregated to avoid repeated measures)
+    test: welch_t
+    variables: {value: project_mean_schedule_variance, group: environment, levels: [regulated, internal]}
+    assumptions: [Project means approximately normal; unequal variances allowed; Mann–Whitney reported as a robustness check.]
+  - id: H7
+    question: RQ10
+    status: confirmatory
+    h0: Coordinator access does not change on-time status-report submission.
+    h1: It changes the on-time rate.
+    unit: employee (randomised)
+    test: experiment_difference
+    variables: {outcome: report_on_time_rate, arm: coordinator_access}
+    assumptions: [Randomised assignment in the simulation; consented participants; CUPED with pre-period covariate.]
+  - id: H8
+    question: RQ8
+    status: exploratory
+    h0: There is no between-person variance in the growth of the context-adjusted signal.
+    h1: Growth varies between people.
+    unit: milestone (nested in employee)
+    test: random_slope_lrt
+    variables: {outcome: context_residual, time: years}
+    assumptions: [Linear growth; boundary-corrected likelihood-ratio test (50:50 chi-square mixture).]

@@ -12,6 +12,12 @@ Evidence-based workforce intelligence MVP. **All data is synthetic.** Decision s
 - `apps/api` — FastAPI, SQLAlchemy models, RBAC (`security.py`), audit, ingestion, training, workflows, CLI.
 - `apps/web` — Next.js App Router + Tailwind + Recharts. Charts only render API data.
 
+- `config/` — editable measurement definitions (ontology, job families, research questions/hypotheses).
+  Code reads them via `meritvector_analytics.measurement`; regenerate schemas/docs with
+  `python scripts/export_schemas.py` and `python scripts/render_research_docs.py` (tests fail if stale).
+- `research/references/library.json` — evidence library, built by `research/references/library.py`. Only add
+  sources whose citation you have checked; record what was confirmed in `verification`.
+
 ## Commands
 `pip install -e ".[dev]"` · `pytest` · `ruff check . && ruff format --check .` · `python scripts/check_secrets.py` ·
 `python -m meritvector_api.cli bootstrap|train|run-job <name>|worker|serve` ·
