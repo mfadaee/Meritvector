@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meritvector"
+version = "0.1.0"
+description = "MeritVector — evidence-based workforce intelligence (MVP, synthetic data)"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "scipy>=1.13",
+    "scikit-learn>=1.5",
+    "statsmodels>=0.14.2",
+    "pydantic>=2.7",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "SQLAlchemy>=2.0.30",
+    "psycopg[binary]>=3.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.6", "nbformat>=5.10", "nbconvert>=7.16", "ipykernel>=6.29"]
+
+[project.scripts]
+meritvector = "meritvector_api.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["packages/shared", "packages/analytics", "packages/coordinator", "packages/connectors", "apps/api"]
+
+[tool.setuptools.package-data]
+"meritvector_analytics.config" = ["*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = ["slow: full-size synthetic organisation (several minutes)"]
+filterwarnings = ["ignore::FutureWarning", "ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 130
+target-version = "py311"
+extend-exclude = ["apps/web", "experiments/notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE"]
+ignore = ["S101", "S311", "B008", "UP038"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S"]
