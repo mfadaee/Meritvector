@@ -34,28 +34,20 @@ def daily_briefing(
     decisions: list[dict],
 ) -> dict[str, Any]:
     todays = [m for m in meetings if _d(m["scheduled_at"]) == today]
-    upcoming = [
-        m for m in meetings if _d(m["scheduled_at"]) and today < _d(m["scheduled_at"]) <= date.fromordinal(today.toordinal() + 7)
-    ]
+    upcoming = [m for m in meetings if _d(m["scheduled_at"]) and today < _d(m["scheduled_at"]) <= date.fromordinal(today.toordinal() + 7)]
     open_tasks = [t for t in tasks if t.get("status") != "done"]
     overdue = [t for t in open_tasks if _d(t.get("due_date")) and _d(t["due_date"]) < today]
-    due_soon = [
-        t for t in open_tasks if _d(t.get("due_date")) and today <= _d(t["due_date"]) <= date.fromordinal(today.toordinal() + 3)
-    ]
+    due_soon = [t for t in open_tasks if _d(t.get("due_date")) and today <= _d(t["due_date"]) <= date.fromordinal(today.toordinal() + 3)]
     ms_soon = [
         m
         for m in milestones
-        if m.get("status") != "achieved"
-        and _d(m.get("planned_date"))
-        and _d(m["planned_date"]) <= date.fromordinal(today.toordinal() + 14)
+        if m.get("status") != "achieved" and _d(m.get("planned_date")) and _d(m["planned_date"]) <= date.fromordinal(today.toordinal() + 14)
     ]
     high_risks = [r for r in risks if r.get("severity") == "high" and r.get("status") in ("open", "issue")]
     lines = [f"Good morning {person.split()[0]}. Briefing for {today:%A %d %B %Y}."]
     lines.append(f"Meetings today: {len(todays)}; in the next 7 days: {len(upcoming)}.")
     if overdue:
-        lines.append(
-            f"{len(overdue)} action(s) are overdue — oldest: “{sorted(overdue, key=lambda t: t['due_date'])[0]['title']}”."
-        )
+        lines.append(f"{len(overdue)} action(s) are overdue — oldest: “{sorted(overdue, key=lambda t: t['due_date'])[0]['title']}”.")
     if due_soon:
         lines.append(f"{len(due_soon)} action(s) due within 3 days.")
     if ms_soon:
@@ -115,8 +107,7 @@ def weekly_status_report(
     md += [f"- {d['text']}" for d in decisions[:6]] or ["- None recorded."]
     md += ["", "## Open actions"]
     md += [
-        f"- {a['title']} — {a.get('owner_name', a.get('owner_employee_id', ''))}, due {a.get('due_date') or 'n/a'}"
-        for a in actions[:10]
+        f"- {a['title']} — {a.get('owner_name', a.get('owner_employee_id', ''))}, due {a.get('due_date') or 'n/a'}" for a in actions[:10]
     ] or ["- None."]
     text = "\n".join(md)
     gen = get_provider().generate(text, purpose="weekly_status", fallback_text=text)
@@ -150,14 +141,9 @@ def project_documentation(*, project: dict, milestones: list[dict], risks: list[
         "| Milestone | Planned | Actual | Status |",
         "|---|---|---|---|",
     ]
-    md += [
-        f"| {m['name']} | {str(m['planned_date'])[:10]} | {str(m.get('actual_date') or '')[:10]} | {m['status']} |"
-        for m in milestones
-    ]
+    md += [f"| {m['name']} | {str(m['planned_date'])[:10]} | {str(m.get('actual_date') or '')[:10]} | {m['status']} |" for m in milestones]
     md += ["", "## Risks (R) and issues (I)"]
-    md += [f"- {'I' if r['kind'] == 'issue' else 'R'} · {r['title']} · {r['severity']} · {r['status']}" for r in risks] or [
-        "- None."
-    ]
+    md += [f"- {'I' if r['kind'] == 'issue' else 'R'} · {r['title']} · {r['severity']} · {r['status']}" for r in risks] or ["- None."]
     md += ["", "## Dependencies (D)"]
     md += [f"- {d['depends_on']}: {d['description']} · {d['status']}" for d in dependencies] or ["- None."]
     return "\n".join(md)

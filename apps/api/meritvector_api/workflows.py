@@ -50,9 +50,7 @@ def _reminders(db: Session) -> dict[str, Any]:
     created = 0
     for tenant in db.scalars(select(Tenant)):
         today = tenant_today(db, tenant.id)
-        tasks = db.scalars(
-            select(CoordinatorTask).where(CoordinatorTask.tenant_id == tenant.id, CoordinatorTask.status != "done")
-        ).all()
+        tasks = db.scalars(select(CoordinatorTask).where(CoordinatorTask.tenant_id == tenant.id, CoordinatorTask.status != "done")).all()
         db.execute(delete(Reminder).where(Reminder.tenant_id == tenant.id))
         by_id = {t.id: t for t in tasks}
         for r in reminders([{"id": t.id, "title": t.title, "due_date": t.due_date, "status": t.status} for t in tasks], today):
@@ -114,9 +112,7 @@ def _retention(db: Session) -> dict[str, Any]:
             ).rowcount
         if "audit_log" in ret:
             cutoff = now() - timedelta(days=int(ret["audit_log"]))
-            stats["audit_entries"] = db.execute(
-                delete(AuditLog).where(AuditLog.tenant_id == tenant.id, AuditLog.at < cutoff)
-            ).rowcount
+            stats["audit_entries"] = db.execute(delete(AuditLog).where(AuditLog.tenant_id == tenant.id, AuditLog.at < cutoff)).rowcount
         out[tenant.id] = stats
     db.commit()
     return out

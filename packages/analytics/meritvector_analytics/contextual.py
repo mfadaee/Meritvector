@@ -62,6 +62,41 @@ class ContextResult:
     diagnostics: dict[str, Any] = field(default_factory=dict)
 
 
+PM_SUFFIX = "__pm"
+
+
+def add_person_means(m: pd.DataFrame, numeric: list[str] | None = None) -> tuple[pd.DataFrame, list[str]]:
+    """Add each person's mean of every numeric context variable (Mundlak / correlated random effects).
+
+    Stronger people are often given harder work. A random-intercept model then confounds the effect of conditions with
+    who was assigned to them, under-estimating how much conditions matter. Adding person means makes the context
+    coefficients *within-person* (estimated from the same person's projects) while keeping shrunk person intercepts.
+    """
+    numeric = CONTEXT_NUMERIC if numeric is None else numeric
+    m = m.copy()
+    cols = []
+    for c in numeric:
+        m[c + PM_SUFFIX] = m.groupby("employee_id")[c].transform("mean")
+        cols.append(c + PM_SUFFIX)
+    return m, cols
+
+
+def within_beta(X: np.ndarray, y: np.ndarray, groups: np.ndarray) -> np.ndarray:
+    """Within-person (fixed-effects) context coefficients via group demeaning; constant-within-person columns drop out."""
+    codes, _ = pd.factorize(groups)
+    cnt = np.bincount(codes)
+    mx = np.vstack([np.bincount(codes, weights=X[:, j]) for j in range(X.shape[1])]).T / cnt[:, None]
+    my = np.bincount(codes, weights=y) / cnt
+    beta, *_ = np.linalg.lstsq(X - mx[codes], y - my[codes], rcond=None)
+    return beta
+
+
+def within_person_formula(outcome: str, numeric: list[str] | None = None, categorical: list[str] | None = None, extra: str = "") -> str:
+    numeric = CONTEXT_NUMERIC if numeric is None else numeric
+    pm = " + ".join(c + PM_SUFFIX for c in numeric)
+    return context_formula(outcome, numeric, categorical, extra=(pm + (f" + {extra}" if extra else "")) if pm else extra)
+
+
 def fit_context_ols(m: pd.DataFrame, outcome: str, formula: str | None = None):
     d = m.dropna(subset=[outcome])
     res = smf.ols(formula or context_formula(outcome), data=d).fit(
@@ -136,15 +171,29 @@ def fit_mixed(m: pd.DataFrame, outcome: str, formula: str | None = None, project
     raise RuntimeError(f"mixed model failed to converge: {caught}")
 
 
-def mixed_estimates(res, d: pd.DataFrame, outcome: str) -> pd.DataFrame:
+def mixed_estimates(res, d: pd.DataFrame, outcome: str, between: list[str] | None = None) -> pd.DataFrame:
+    """Employee effects relative to context, with conditional 95% intervals.
+
+    With ``between`` (Mundlak person-mean terms) the effect is the shrunk random intercept plus the between-person
+    component (person means − population means)·γ, i.e. everything about the person's outcomes not explained by the
+    within-person effect of their conditions. Its variance adds the uncertainty of γ.
+    """
     sign = OUTCOMES[outcome]["sign"]
     rows = []
     re_cov = res.random_effects_cov
     n = d.groupby("employee_id").size()
+    if between:
+        pm = d.groupby("employee_id")[between].first()
+        centred = pm - pm.mean()
+        gamma = res.fe_params[between].to_numpy()
+        cov_g = res.cov_params().loc[between, between].to_numpy()
     for emp, eff in res.random_effects.items():
         val = float(eff.iloc[0])
-        cov = re_cov[emp]
-        var = float(np.asarray(cov)[0, 0])
+        var = float(np.asarray(re_cov[emp])[0, 0])
+        if between:
+            x = centred.loc[emp].to_numpy()
+            val += float(x @ gamma)
+            var += float(x @ cov_g @ x)
         se = float(np.sqrt(max(var, 0.0)))
         est = sign * val
         rows.append(
@@ -176,12 +225,22 @@ def classify(est: pd.DataFrame, outcome: str, min_n: int = MIN_MILESTONES) -> pd
     return pd.Series(label, index=est.index)
 
 
-def run_contextual(m: pd.DataFrame, outcome: str) -> ContextResult:
+def run_contextual(m: pd.DataFrame, outcome: str, within_person: bool = True) -> ContextResult:
+    """Context models for one outcome.
+
+    ``within_person=True`` (default since v0.2) uses the Mundlak specification for the adjusted estimates; ``False``
+    reproduces v0.1 (random intercept only), kept as a sensitivity specification.
+    """
     ols, d = fit_context_ols(m, outcome)
     raw = raw_estimates(m, outcome)
     resid = residual_estimates(m, outcome, ols, d)
-    mres, md, used_vc, msgs = fit_mixed(m, outcome)
-    mixed = mixed_estimates(mres, md, outcome)
+    between = None
+    if within_person:
+        mw, between = add_person_means(m)
+        mres, md, used_vc, msgs = fit_mixed(mw, outcome, formula=within_person_formula(outcome))
+    else:
+        mres, md, used_vc, msgs = fit_mixed(m, outcome)
+    mixed = mixed_estimates(mres, md, outcome, between=between)
     mixed["conclusion"] = classify(mixed, outcome)
     vc = {"employee_intercept_var": float(np.asarray(mres.cov_re)[0, 0]), "residual_var": float(mres.scale)}
     if used_vc and len(mres.vcomp):
@@ -196,6 +255,8 @@ def run_contextual(m: pd.DataFrame, outcome: str) -> ContextResult:
     resid_ = np.asarray(mres.resid)
     bp = het_breuschpagan(ols.resid, sm.add_constant(ols.model.exog[:, 1:]))
     diagnostics = {
+        "specification": "within-person (Mundlak) mixed model" if within_person else "random-intercept mixed model (v0.1)",
+        "within_person_coefficients": {c: float(mres.fe_params[c]) for c in CONTEXT_NUMERIC if c in mres.fe_params},
         "n_observations": int(len(md)),
         "n_employees": int(md["employee_id"].nunique()),
         "n_projects": int(md["project_id"].nunique()),

@@ -30,9 +30,7 @@ def my_evidence(
     """Every record held about the caller — available regardless of whether assessment is enabled."""
     if not p.employee_id:
         raise HTTPException(403, "This account has no employee record")
-    stmt = select(EvidenceEventRow).where(
-        EvidenceEventRow.tenant_id == p.tenant_id, EvidenceEventRow.employee_id == p.employee_id
-    )
+    stmt = select(EvidenceEventRow).where(EvidenceEventRow.tenant_id == p.tenant_id, EvidenceEventRow.employee_id == p.employee_id)
     if category:
         stmt = stmt.where(EvidenceEventRow.category == category)
     if data_category:
@@ -96,10 +94,7 @@ def challenges(status: str | None = None, p: Principal = Depends(current_princip
         stmt = stmt.where(EvidenceChallenge.status == status)
     rows = db.scalars(stmt.order_by(EvidenceChallenge.created_at.desc())).all()
     names = {e.id: e.display_name for e in db.scalars(select(Employee).where(Employee.id.in_({r.employee_id for r in rows})))}
-    evs = {
-        e.event_id: e
-        for e in db.scalars(select(EvidenceEventRow).where(EvidenceEventRow.event_id.in_([r.event_id for r in rows])))
-    }
+    evs = {e.event_id: e for e in db.scalars(select(EvidenceEventRow).where(EvidenceEventRow.event_id.in_([r.event_id for r in rows])))}
     return [
         to_dict(r)
         | {
@@ -132,9 +127,7 @@ def resolve(challenge_id: int, body: ResolveIn, p: Principal = Depends(current_p
     if c.status != "pending":
         raise HTTPException(409, f"Challenge already {c.status}")
     ev = db.get(EvidenceEventRow, c.event_id)
-    ev.validation_status = {"upheld_retract": "retracted", "upheld_corrected": "corrected", "rejected": c.previous_status}[
-        body.decision
-    ]
+    ev.validation_status = {"upheld_retract": "retracted", "upheld_corrected": "corrected", "rejected": c.previous_status}[body.decision]
     c.status, c.resolution_note, c.resolved_by, c.resolved_at = body.decision, body.note, p.user_id, audit.now()
     audit.record_principal(
         db, p, "challenge_resolved", "evidence_challenge", str(c.id), detail={"decision": body.decision, "event_id": c.event_id}

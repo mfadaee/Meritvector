@@ -1,0 +1,73 @@
+# Causal diagrams for the causal workstream. observed: false marks unmeasured variables.
+version: "1.0"
+dags:
+  resources_delivery:
+    question: Does more resource availability cause better delivery outcomes?
+    treatment: resource_constraint
+    outcome: schedule_variance_pct
+    nodes:
+      skill: {observed: false, label: Person's latent contribution}
+      assignment_policy: {observed: false, label: Who gets which project}
+      technical_complexity: {observed: true}
+      dependency_count: {observed: true}
+      environment: {observed: true}
+      business_unit: {observed: true}
+      resource_constraint: {observed: true, label: Staffing shortfall}
+      scope_changes_to_date: {observed: true}
+      schedule_variance_pct: {observed: true, label: Milestone slip}
+    edges:
+      - [skill, assignment_policy]
+      - [assignment_policy, resource_constraint]
+      - [assignment_policy, technical_complexity]
+      - [skill, schedule_variance_pct]
+      - [technical_complexity, dependency_count]
+      - [technical_complexity, schedule_variance_pct]
+      - [dependency_count, schedule_variance_pct]
+      - [business_unit, environment]
+      - [environment, schedule_variance_pct]
+      - [business_unit, schedule_variance_pct]
+      - [resource_constraint, schedule_variance_pct]
+      - [technical_complexity, scope_changes_to_date]
+      - [scope_changes_to_date, schedule_variance_pct]
+    candidate_adjustment_sets:
+      naive: []
+      measured_context: [technical_complexity, dependency_count, environment, business_unit, scope_changes_to_date]
+    within_person_design: >-
+      Comparing the same person across projects (employee fixed effects) removes stable latent contribution, the
+      unmeasured confounder, if contribution does not change much over time.
+  visibility_ratings:
+    question: Are high-visibility employees more likely to receive favourable evaluations?
+    treatment: visibility
+    outcome: rating
+    nodes:
+      contribution: {observed: false}
+      visibility: {observed: true}
+      outcomes: {observed: true}
+      rating: {observed: true}
+    edges:
+      - [contribution, outcomes]
+      - [outcomes, rating]
+      - [visibility, rating]
+      - [contribution, visibility]
+    candidate_adjustment_sets:
+      naive: []
+      outcomes_only: [outcomes]
+    note: Adjusting for outcomes blocks the contribution path only partially; estimated in Scenario E where visibility is assigned.
+  raw_kpis_difficulty:
+    question: Are project managers on difficult projects systematically disadvantaged by raw KPIs?
+    treatment: context_expected
+    outcome: raw_minus_adjusted
+    nodes:
+      skill: {observed: false}
+      context_expected: {observed: true, label: Difficulty predicted by conditions}
+      raw_kpi: {observed: true}
+      adjusted_estimate: {observed: true}
+      raw_minus_adjusted: {observed: true}
+    edges:
+      - [skill, raw_kpi]
+      - [context_expected, raw_kpi]
+      - [raw_kpi, raw_minus_adjusted]
+      - [adjusted_estimate, raw_minus_adjusted]
+      - [skill, adjusted_estimate]
+    candidate_adjustment_sets: {naive: []}
+    note: A measurement question answered descriptively — how much of the raw KPI gap is explained by difficulty.

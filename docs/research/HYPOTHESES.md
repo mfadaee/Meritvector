@@ -12,7 +12,7 @@ Significance level α = 0.05. Multiple-testing families:
 - **H0:** A person's raw on-time rate in their first year is not associated with the context-expected difficulty of their later projects.
 - **H1:** Earlier raw results are associated with later assignment difficulty.
 - **Unit of analysis:** employee
-- **Test:** `spearman` on x=first_year_on_time_rate, y=later_context_expected
+- **Test:** `spearman` on x=first_year_on_time, y=later_context_expected
 - **Assumptions:** Monotone relationship; employees with projects in both periods.
 - **Reporting:** effect size with confidence interval, assumption checks and adjusted p-value — not a p-value alone.
 

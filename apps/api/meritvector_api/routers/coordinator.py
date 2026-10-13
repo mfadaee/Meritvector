@@ -196,19 +196,14 @@ def weekly(project_id: str, p: Principal = Depends(current_principal), db: Sessi
     rs = [to_dict(r) for r in db.scalars(select(Risk).where(Risk.project_id == pr.id))]
     ds = [to_dict(d) for d in db.scalars(select(Dependency).where(Dependency.project_id == pr.id))]
     acts = [
-        to_dict(t)
-        for t in db.scalars(select(CoordinatorTask).where(CoordinatorTask.project_id == pr.id, CoordinatorTask.status != "done"))
+        to_dict(t) for t in db.scalars(select(CoordinatorTask).where(CoordinatorTask.project_id == pr.id, CoordinatorTask.status != "done"))
     ]
-    names = {
-        e.id: e.display_name for e in db.scalars(select(Employee).where(Employee.id.in_([a["owner_employee_id"] for a in acts])))
-    }
+    names = {e.id: e.display_name for e in db.scalars(select(Employee).where(Employee.id.in_([a["owner_employee_id"] for a in acts])))}
     for a in acts:
         a["owner_name"] = names.get(a["owner_employee_id"])
     meetings_ = db.scalars(select(Meeting).where(Meeting.project_id == pr.id)).all()
     decisions = [
-        d
-        for i in db.scalars(select(MeetingInsight).where(MeetingInsight.meeting_id.in_([m.id for m in meetings_])))
-        for d in i.decisions
+        d for i in db.scalars(select(MeetingInsight).where(MeetingInsight.meeting_id.in_([m.id for m in meetings_]))) for d in i.decisions
     ]
     health = health_map(db, p.tenant_id, [pr.id]).get(pr.id, {}).get("health")
     return weekly_status_report(
@@ -230,8 +225,7 @@ def documentation(project_id: str, p: Principal = Depends(current_principal), db
     md = project_documentation(
         project=to_dict(pr) | {"lead_name": lead.display_name if lead else pr.lead_employee_id},
         milestones=[
-            to_dict(m)
-            for m in db.scalars(select(Milestone).where(Milestone.project_id == pr.id).order_by(Milestone.planned_date))
+            to_dict(m) for m in db.scalars(select(Milestone).where(Milestone.project_id == pr.id).order_by(Milestone.planned_date))
         ],
         risks=[to_dict(r) for r in db.scalars(select(Risk).where(Risk.project_id == pr.id))],
         dependencies=[to_dict(d) for d in db.scalars(select(Dependency).where(Dependency.project_id == pr.id))],
@@ -249,9 +243,7 @@ def mgmt_summary(p: Principal = Depends(current_principal), db: Session = Depend
     if p.role == "manager":
         team = [e.id for e in db.scalars(select(Employee).where(Employee.manager_id == p.employee_id))] + [p.employee_id]
         ps = db.scalars(
-            select(Project).where(
-                Project.tenant_id == p.tenant_id, Project.lead_employee_id.in_(team), Project.status == "active"
-            )
+            select(Project).where(Project.tenant_id == p.tenant_id, Project.lead_employee_id.in_(team), Project.status == "active")
         ).all()
     else:
         ps = my_projects(db, p)
@@ -324,9 +316,7 @@ def send(message_id: int, body: SendIn, p: Principal = Depends(current_principal
     auth = Authorisation(message_id=str(m.id), authorised_by=p.user_id, confirmed=body.confirm) if body.confirm else None
     conn = build_connectors(MockDataSource())[m.channel]
     try:
-        receipt = conn.deliver(
-            OutboundMessage(str(m.id), m.channel, m.recipient, m.subject, m.body), policy=policy, authorisation=auth
-        )
+        receipt = conn.deliver(OutboundMessage(str(m.id), m.channel, m.recipient, m.subject, m.body), policy=policy, authorisation=auth)
     except DeliveryNotAuthorised as exc:
         m.status, m.status_detail = "blocked", str(exc)
         audit.record_principal(db, p, "delivery_blocked", "outbox_message", str(m.id), detail={"reason": str(exc)})

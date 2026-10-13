@@ -119,14 +119,13 @@ def test_challenge_workflow(api_client):
     )
     assert r.status_code == 200
     cid = r.json()["id"]
-    assert api_client.get("/evidence/me?category=milestone_achieved&limit=200", headers=h).json()["items"][0][
-        "validation_status"
-    ] in ("disputed", "validated")
+    assert api_client.get("/evidence/me?category=milestone_achieved&limit=200", headers=h).json()["items"][0]["validation_status"] in (
+        "disputed",
+        "validated",
+    )
     # The employee cannot resolve their own challenge; their manager can.
     assert (
-        api_client.post(
-            f"/evidence/challenges/{cid}/resolve", json={"decision": "rejected", "note": "nope nope"}, headers=h
-        ).status_code
+        api_client.post(f"/evidence/challenges/{cid}/resolve", json={"decision": "rejected", "note": "nope nope"}, headers=h).status_code
         == 403
     )
     mh = login(api_client, f"u-{api_client.get('/workspace/data', headers=h).json()['profile']['employee_id']}")
@@ -266,3 +265,47 @@ def test_retraining_creates_new_version(api_client):
     assert len(runs) == n + 1 and runs[0]["id"] == run.id
     # The upheld challenge changed the evidence, so the data fingerprint differs from the first run.
     assert runs[0]["data_hash"] != runs[-1]["data_hash"]
+
+
+def _wait_for_run(client, headers, run_id, timeout=120):
+    import time
+
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        r = client.get(f"/research/runs/{run_id}", headers=headers).json()
+        if r["status"] in ("completed", "failed"):
+            return r
+        time.sleep(0.5)
+    raise AssertionError("research run did not finish")
+
+
+def test_research_lab_runs_reproduces_and_exports(api_client):
+    h = login(api_client, "u-SYN-RES")
+    ov = api_client.get("/research/overview", headers=h).json()
+    assert {w["id"] for w in ov["workstreams"]} >= {"hypotheses", "regression", "classification", "scenarios"}
+    assert any(m["name"] == "context_adjusted_delivery" for m in ov["model_registry"])
+    run = api_client.post("/research/runs", json={"workstream": "causal_raw_kpis"}, headers=h).json()
+    done = _wait_for_run(api_client, h, run["id"])
+    assert done["status"] == "completed", done.get("error")
+    assert done["dataset_version"].startswith("ds-") and done["result"]["plain_language"]
+    rep = api_client.post(f"/research/runs/{run['id']}/reproduce", json={}, headers=h).json()
+    again = _wait_for_run(api_client, h, rep["id"])
+    assert again["reproduced_identically"] is True
+    md = api_client.get(f"/research/runs/{run['id']}/report", headers=h)
+    assert md.status_code == 200 and md.text.startswith("# ")
+    assert api_client.post("/research/runs", json={"workstream": "nope"}, headers=h).status_code == 404
+    assert api_client.post("/research/runs", json={"workstream": "eda_variables", "params": {"sql": "x"}}, headers=h).status_code == 422
+
+
+def test_research_access_is_restricted(api_client):
+    emp = _personas(api_client)[("synthetic-pmo", "Employee")]
+    h = login(api_client, emp["user_id"])
+    assert api_client.get("/research/overview", headers=h).status_code == 403
+    assert api_client.post("/research/runs", json={"workstream": "eda_variables"}, headers=h).status_code == 403
+    assert api_client.get("/research/overview", headers=login(api_client, "u-SBX-RES")).status_code == 403  # not approved
+    # Measurement definitions are open to everyone ("How was this assessed?").
+    m = api_client.get("/measurement/metrics/adjusted_schedule_estimate", headers=h).json()
+    assert m["plain_language"] and m["prohibited_interpretations"]
+    assert api_client.get("/measurement/metrics/unknown", headers=h).status_code == 404
+    assert len(api_client.get("/research/library", headers=h).json()["entries"]) >= 30
+    assert {f["id"] for f in api_client.get("/measurement/job-families", headers=h).json()} >= {"pmo", "engineering_example"}

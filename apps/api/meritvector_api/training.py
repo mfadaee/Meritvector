@@ -148,6 +148,9 @@ def train_tenant(db: Session, tenant_id: str, n_boot: int | None = None) -> Mode
         }
         rows.append(EmployeeRunOutput(run_id=run.id, employee_id=emp_id, tenant_id=tenant_id, payload=payload))
     db.add_all(rows)
+    from meritvector_api.research_service import register_context_model
+
+    register_context_model(db, tenant_id, run.id, run.metrics)
     db.commit()
     log.info("model run %s saved to %s", run.id, out_dir)
     return run
@@ -155,7 +158,5 @@ def train_tenant(db: Session, tenant_id: str, n_boot: int | None = None) -> Mode
 
 def latest_run(db: Session, tenant_id: str) -> ModelRun | None:
     return db.scalars(
-        select(ModelRun)
-        .where(ModelRun.tenant_id == tenant_id, ModelRun.status == "completed")
-        .order_by(ModelRun.created_at.desc())
+        select(ModelRun).where(ModelRun.tenant_id == tenant_id, ModelRun.status == "completed").order_by(ModelRun.created_at.desc())
     ).first()

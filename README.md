@@ -101,14 +101,17 @@ the `model_runs` table.
 
 ## Headline results (synthetic, seed 20261013)
 
-* Context-adjusted estimates correlate **ρ = 0.77** with the hidden contribution parameter; raw delivery metrics
-  **0.28**; historical manager ratings **0.07**. 95% intervals cover the true effect for **90%** of employees.
+* Context-adjusted estimates (v0.2 within-person model) correlate **ρ = 0.79** with the hidden contribution
+  parameter; raw delivery metrics **0.28**; historical manager ratings **0.07**. 95% intervals cover the true effect
+  for **90%** of employees; 99% of strong conclusions have the correct sign.
 * Out-of-time (last 6 months of settled milestones held out), MAE: global mean 12.6 → context OLS 9.6 →
   context + employee mixed model **8.4** percentage points.
-* Flagship experiment: unadjusted, Employee A is 23 pp ahead (on-time 95% vs 0%). After adjustment the difference is
-  −0.6 pp (bootstrap 95% interval −13.4 to +5.2) and the two people's operating conditions barely overlap, so the
-  system reports **inconclusive**. The hidden truth shows B is the stronger contributor: adjustment removed the
-  misleading raw gap but, correctly, did not claim more than the evidence supports.
+* Flagship experiment (two-person): unadjusted, Employee A is 23 pp ahead (on-time 95% vs 0%). After adjustment B's
+  estimate is +8.1 pp [1.2, 14.9] (truth +6.2) and A's −0.7, but the two people's operating conditions barely overlap,
+  so the comparison is reported as **inconclusive** rather than over-claimed.
+* Research Laboratory: 15 reproducible workstreams (EDA, registered hypotheses with Holm correction, model comparison,
+  30-day milestone-risk classifier PR-AUC 0.85, clustering, growth models, causal DAGs, experiment design) and six
+  synthetic scenarios with known truth. See [RESEARCH_LAB_FINDINGS](docs/research/RESEARCH_LAB_FINDINGS.md).
 
 Full details: [MODEL_CARD](docs/research/MODEL_CARD.md).
 

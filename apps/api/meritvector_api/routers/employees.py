@@ -178,15 +178,12 @@ class ReviewIn(BaseModel):
 def reviews(employee_id: str, p: Principal = Depends(require_assessment_enabled), db: Session = Depends(get_db)) -> list[dict]:
     emp = get_visible_employee(db, p, employee_id)
     return [
-        to_dict(n)
-        for n in db.scalars(select(ReviewNote).where(ReviewNote.employee_id == emp.id).order_by(ReviewNote.created_at.desc()))
+        to_dict(n) for n in db.scalars(select(ReviewNote).where(ReviewNote.employee_id == emp.id).order_by(ReviewNote.created_at.desc()))
     ]
 
 
 @router.post("/employees/{employee_id}/reviews")
-def add_review(
-    employee_id: str, body: ReviewIn, p: Principal = Depends(require_assessment_enabled), db: Session = Depends(get_db)
-) -> dict:
+def add_review(employee_id: str, body: ReviewIn, p: Principal = Depends(require_assessment_enabled), db: Session = Depends(get_db)) -> dict:
     emp = get_visible_employee(db, p, employee_id)
     if not can_review(p, emp):
         raise HTTPException(403, "Only the employee's manager or an HR reviewer can record a review")

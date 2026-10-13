@@ -106,6 +106,8 @@ class Project(Base):
     environment: Mapped[str] = mapped_column(String(32))
     maturity: Mapped[str] = mapped_column(String(32))
     is_synthetic: Mapped[bool] = mapped_column(Boolean, default=True)
+    # v0.2: recorded context and responsibility dimensions from the PMO specification (not modelled).
+    dimensions: Mapped[dict | None] = mapped_column(JSON, nullable=True, default=dict)
 
 
 class Milestone(Base):
@@ -365,3 +367,47 @@ class JobRun(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(String(16))
     detail: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+# --------------------------------------------------------------- research laboratory (v0.2)
+class DatasetVersion(Base):
+    __tablename__ = "dataset_versions"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    description: Mapped[str] = mapped_column(String(300))
+    counts: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class ResearchRun(Base):
+    __tablename__ = "research_runs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), index=True)
+    workstream: Mapped[str] = mapped_column(String(64), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    params: Mapped[dict] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(16))  # queued | running | completed | failed
+    evidence_status: Mapped[str | None] = mapped_column(String(16), nullable=True)  # exploratory | confirmatory
+    dataset_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    code_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    result_hash: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    reproduces_run_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    reproduced_identically: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    duration_s: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_by: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class ModelRegistryEntry(Base):
+    __tablename__ = "model_registry"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), index=True)
+    name: Mapped[str] = mapped_column(String(100))
+    version: Mapped[str] = mapped_column(String(64))
+    spec: Mapped[dict] = mapped_column(JSON, default=dict)
+    metrics: Mapped[dict] = mapped_column(JSON, default=dict)
+    dataset_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="registered")
+    registered_at: Mapped[datetime] = mapped_column(DateTime)
