@@ -58,30 +58,128 @@ _ENV_EFFECT = {"internal": 0.0, "customer_facing": 2.5, "regulated": 6.0}
 _MATURITY_EFFECT = {"established": 0.0, "greenfield": 4.0}
 
 _FIRST = (
-    "Avery", "Jordan", "Riley", "Morgan", "Casey", "Quinn", "Rowan", "Sasha", "Imani", "Kenji",
-    "Priya", "Mateo", "Leila", "Tomasz", "Aisha", "Oskar", "Nadia", "Ravi", "Elena", "Kwame",
-    "Ingrid", "Diego", "Mei", "Farah", "Lukas", "Amara", "Hiro", "Zara", "Emeka", "Sofia",
-    "Arjun", "Noor", "Mikael", "Thandi", "Yusuf", "Clara", "Dev", "Ines", "Bilal", "Freya",
+    "Avery",
+    "Jordan",
+    "Riley",
+    "Morgan",
+    "Casey",
+    "Quinn",
+    "Rowan",
+    "Sasha",
+    "Imani",
+    "Kenji",
+    "Priya",
+    "Mateo",
+    "Leila",
+    "Tomasz",
+    "Aisha",
+    "Oskar",
+    "Nadia",
+    "Ravi",
+    "Elena",
+    "Kwame",
+    "Ingrid",
+    "Diego",
+    "Mei",
+    "Farah",
+    "Lukas",
+    "Amara",
+    "Hiro",
+    "Zara",
+    "Emeka",
+    "Sofia",
+    "Arjun",
+    "Noor",
+    "Mikael",
+    "Thandi",
+    "Yusuf",
+    "Clara",
+    "Dev",
+    "Ines",
+    "Bilal",
+    "Freya",
 )
 _LAST = (
-    "Lindqvist", "Okafor", "Moreau", "Tanaka", "Haddad", "Novak", "Reyes", "Mensah", "Kowalski", "Banerjee",
-    "Fischer", "Abara", "Castillo", "Sato", "Nkosi", "Petrov", "Duarte", "Iyer", "Varga", "Osei",
-    "Holm", "Rahman", "Bianchi", "Kariuki", "Dubois", "Yilmaz", "Larsen", "Mwangi", "Ortiz", "Chen",
-    "Brennan", "Aziz", "Kaur", "Svensson", "Adeyemi", "Morita", "Silva", "Jansen", "Nair", "Quispe",
+    "Lindqvist",
+    "Okafor",
+    "Moreau",
+    "Tanaka",
+    "Haddad",
+    "Novak",
+    "Reyes",
+    "Mensah",
+    "Kowalski",
+    "Banerjee",
+    "Fischer",
+    "Abara",
+    "Castillo",
+    "Sato",
+    "Nkosi",
+    "Petrov",
+    "Duarte",
+    "Iyer",
+    "Varga",
+    "Osei",
+    "Holm",
+    "Rahman",
+    "Bianchi",
+    "Kariuki",
+    "Dubois",
+    "Yilmaz",
+    "Larsen",
+    "Mwangi",
+    "Ortiz",
+    "Chen",
+    "Brennan",
+    "Aziz",
+    "Kaur",
+    "Svensson",
+    "Adeyemi",
+    "Morita",
+    "Silva",
+    "Jansen",
+    "Nair",
+    "Quispe",
 )
 
 _PROJECT_THEMES = (
-    "Payments Modernisation", "Data Platform Migration", "Branch Network Refresh", "Customer Portal",
-    "Identity & Access Upgrade", "Regulatory Reporting", "Cloud Landing Zone", "CRM Consolidation",
-    "Mobile App Release", "Network Resilience", "ERP Upgrade", "Fraud Analytics", "Contact Centre Rebuild",
-    "Data Retention Controls", "API Gateway Rollout", "Finance Close Automation", "Vendor Onboarding",
-    "Disaster Recovery Uplift", "Analytics Self-Service", "Document Management", "Pricing Engine",
-    "Onboarding Journey", "Treasury Platform", "Workplace Tech Refresh",
+    "Payments Modernisation",
+    "Data Platform Migration",
+    "Branch Network Refresh",
+    "Customer Portal",
+    "Identity & Access Upgrade",
+    "Regulatory Reporting",
+    "Cloud Landing Zone",
+    "CRM Consolidation",
+    "Mobile App Release",
+    "Network Resilience",
+    "ERP Upgrade",
+    "Fraud Analytics",
+    "Contact Centre Rebuild",
+    "Data Retention Controls",
+    "API Gateway Rollout",
+    "Finance Close Automation",
+    "Vendor Onboarding",
+    "Disaster Recovery Uplift",
+    "Analytics Self-Service",
+    "Document Management",
+    "Pricing Engine",
+    "Onboarding Journey",
+    "Treasury Platform",
+    "Workplace Tech Refresh",
 )
 
 _TEAMS = (
-    "Platform Engineering", "Security Architecture", "Procurement", "Legal", "Data Governance",
-    "Enterprise Architecture", "Vendor Management", "Change Management", "Finance Systems", "Network Operations",
+    "Platform Engineering",
+    "Security Architecture",
+    "Procurement",
+    "Legal",
+    "Data Governance",
+    "Enterprise Architecture",
+    "Vendor Management",
+    "Change Management",
+    "Finance Systems",
+    "Network Operations",
 )
 
 _ARCHETYPE_SHARES = (
@@ -134,8 +232,15 @@ class SyntheticDataset:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     OBSERVABLE = (
-        "employees", "projects", "milestones", "risks", "dependencies", "events",
-        "meetings", "manager_ratings", "promotions",
+        "employees",
+        "projects",
+        "milestones",
+        "risks",
+        "dependencies",
+        "events",
+        "meetings",
+        "manager_ratings",
+        "promotions",
     )
 
     def write(self, directory: str | Path) -> Path:
@@ -376,14 +481,23 @@ class _Builder:
 
         # Kick-off: the PMO complexity assessment records operating conditions.
         self.emit(
-            employee_id=lead, project_id=pid, when=start, source="pmo_register", category="complexity_assessment",
-            ref=f"PMO-{pid}-CA", payload=dict(ctx, programme=programme),
+            employee_id=lead,
+            project_id=pid,
+            when=start,
+            source="pmo_register",
+            category="complexity_assessment",
+            ref=f"PMO-{pid}-CA",
+            payload=dict(ctx, programme=programme),
             quality={"assessor": "pmo_office", "method": "pmo_complexity_rubric_v2"},
         )
         if rc >= 0.4:
             self.emit(
-                employee_id=lead, project_id=pid, when=start + timedelta(days=int(rng.integers(3, 30))),
-                source="pmo_register", category="resource_limitation", ref=f"PMO-{pid}-RL",
+                employee_id=lead,
+                project_id=pid,
+                when=start + timedelta(days=int(rng.integers(3, 30))),
+                source="pmo_register",
+                category="resource_limitation",
+                ref=f"PMO-{pid}-RL",
                 payload={"resource_constraint": rc, "unfilled_roles": int(round(rc * ctx["team_size"] / 2))},
             )
 
@@ -392,9 +506,16 @@ class _Builder:
         scope_days = sorted(int(rng.integers(10, max(11, duration - 10))) for _ in range(n_scope))
         for k, sd in enumerate(scope_days):
             self.emit(
-                employee_id=lead, project_id=pid, when=start + timedelta(days=sd), source="jira",
-                category="scope_change_approved", ref=f"JIRA-{pid}-SC{k + 1}",
-                payload={"change_id": f"{pid}-SC{k + 1}", "impact": str(rng.choice(["minor", "moderate", "major"], p=[0.5, 0.35, 0.15]))},
+                employee_id=lead,
+                project_id=pid,
+                when=start + timedelta(days=sd),
+                source="jira",
+                category="scope_change_approved",
+                ref=f"JIRA-{pid}-SC{k + 1}",
+                payload={
+                    "change_id": f"{pid}-SC{k + 1}",
+                    "impact": str(rng.choice(["minor", "moderate", "major"], p=[0.5, 0.35, 0.15])),
+                },
                 quality={"approved_by": "change_board"},
             )
 
@@ -406,16 +527,36 @@ class _Builder:
             did = f"{pid}-D{k + 1}"
             team = str(rng.choice(_TEAMS))
             self.deps.append(
-                {"dependency_id": did, "project_id": pid, "owner_employee_id": lead, "depends_on": team,
-                 "description": f"{team} deliverable required for {name}", "raised_on": raised,
-                 "resolved_on": resolved if resolved <= self.as_of else None,
-                 "status": "resolved" if resolved <= self.as_of else "open"}
+                {
+                    "dependency_id": did,
+                    "project_id": pid,
+                    "owner_employee_id": lead,
+                    "depends_on": team,
+                    "description": f"{team} deliverable required for {name}",
+                    "raised_on": raised,
+                    "resolved_on": resolved if resolved <= self.as_of else None,
+                    "status": "resolved" if resolved <= self.as_of else "open",
+                }
             )
-            self.emit(employee_id=lead, project_id=pid, when=raised, source="jira", category="dependency_registered",
-                      ref=f"JIRA-{did}", payload={"dependency_id": did, "depends_on": team})
-            self.emit(employee_id=lead, project_id=pid, when=resolved, source="jira", category="dependency_resolved",
-                      ref=f"JIRA-{did}-R", payload={"dependency_id": did, "days_open": res_days, "cross_unit": True},
-                      quality={"days_open": res_days})
+            self.emit(
+                employee_id=lead,
+                project_id=pid,
+                when=raised,
+                source="jira",
+                category="dependency_registered",
+                ref=f"JIRA-{did}",
+                payload={"dependency_id": did, "depends_on": team},
+            )
+            self.emit(
+                employee_id=lead,
+                project_id=pid,
+                when=resolved,
+                source="jira",
+                category="dependency_resolved",
+                ref=f"JIRA-{did}-R",
+                payload={"dependency_id": did, "days_open": res_days, "cross_unit": True},
+                quality={"days_open": res_days},
+            )
 
         # Milestones.
         n_ms = 3 + ctx["size_band"] + int(rng.integers(0, 2))
@@ -430,10 +571,18 @@ class _Builder:
             s = skill_at(p)
             noise = float(rng.standard_t(5) * 6.5)
             svp = (
-                -10.0 + 5.5 * (cx - 3) + 2.2 * dep + 22.0 * rc + 4.0 * vol
-                + _ENV_EFFECT[ctx["environment"]] + _MATURITY_EFFECT[ctx["maturity"]]
-                + (1.5 if ctx["team_size"] > 12 else 0.0) + _BU_EFFECT[emp.business_unit]
-                + project_shock - 8.0 * s + noise
+                -10.0
+                + 5.5 * (cx - 3)
+                + 2.2 * dep
+                + 22.0 * rc
+                + 4.0 * vol
+                + _ENV_EFFECT[ctx["environment"]]
+                + _MATURITY_EFFECT[ctx["maturity"]]
+                + (1.5 if ctx["team_size"] > 12 else 0.0)
+                + _BU_EFFECT[emp.business_unit]
+                + project_shock
+                - 8.0 * s
+                + noise
             )
             svp = float(max(svp, -25.0))
             actual = p + timedelta(days=round(svp / 100.0 * interval))
@@ -441,8 +590,15 @@ class _Builder:
             achieved = actual <= self.as_of
             status = "achieved" if achieved else ("overdue" if p < self.as_of else "planned")
             self.milestones.append(
-                {"milestone_id": mid, "project_id": pid, "name": f"Milestone {k + 1} of {n_ms}", "owner_employee_id": lead,
-                 "planned_date": p, "actual_date": actual if achieved else None, "status": status}
+                {
+                    "milestone_id": mid,
+                    "project_id": pid,
+                    "name": f"Milestone {k + 1} of {n_ms}",
+                    "owner_employee_id": lead,
+                    "planned_date": p,
+                    "actual_date": actual if achieved else None,
+                    "status": status,
+                }
             )
             # Tasks: volume scales with activity propensity — counting them rewards busyness.
             n_tasks = 2 + int(rng.poisson(1.5 + 1.2 * max(t.activity_propensity, 0)))
@@ -452,28 +608,63 @@ class _Builder:
                 on_time = rng.random() < _sigmoid(1.0 + 0.4 * s - 1.0 * rc)
                 done = due + timedelta(days=0 if on_time else int(rng.integers(1, 15)))
                 ref = f"{source.upper()}-{mid}-T{j + 1}"
-                self.emit(employee_id=lead, project_id=pid, when=created, source=source, category="task_created",
-                          ref=ref, payload={"task_id": ref, "due_date": str(due)})
-                self.emit(employee_id=lead, project_id=pid, when=done, source=source, category="task_completed",
-                          ref=ref + "-C", payload={"task_id": ref, "due_date": str(due), "on_time": bool(on_time)})
+                self.emit(
+                    employee_id=lead,
+                    project_id=pid,
+                    when=created,
+                    source=source,
+                    category="task_created",
+                    ref=ref,
+                    payload={"task_id": ref, "due_date": str(due)},
+                )
+                self.emit(
+                    employee_id=lead,
+                    project_id=pid,
+                    when=done,
+                    source=source,
+                    category="task_completed",
+                    ref=ref + "-C",
+                    payload={"task_id": ref, "due_date": str(due), "on_time": bool(on_time)},
+                )
             if achieved:
                 self.emit(
-                    employee_id=lead, project_id=pid, when=actual, source=source, category="milestone_achieved",
+                    employee_id=lead,
+                    project_id=pid,
+                    when=actual,
+                    source=source,
+                    category="milestone_achieved",
                     ref=f"{source.upper()}-{mid}",
-                    payload={"milestone_id": mid, "planned_date": str(p), "actual_date": str(actual),
-                             "baseline_interval_days": interval, "milestone_index": k + 1, "milestone_count": n_ms},
+                    payload={
+                        "milestone_id": mid,
+                        "planned_date": str(p),
+                        "actual_date": str(actual),
+                        "baseline_interval_days": interval,
+                        "milestone_index": k + 1,
+                        "milestone_count": n_ms,
+                    },
                     quality={"verified_by": "pmo_register"},
                 )
                 if svp > 30:
-                    self.emit(employee_id=lead, project_id=pid, when=p, source="pmo_register", category="schedule_changed",
-                              ref=f"PMO-{mid}-RB", payload={"milestone_id": mid, "slip_days": (actual - p).days})
+                    self.emit(
+                        employee_id=lead,
+                        project_id=pid,
+                        when=p,
+                        source="pmo_register",
+                        category="schedule_changed",
+                        ref=f"PMO-{mid}-RB",
+                        payload={"milestone_id": mid, "slip_days": (actual - p).days},
+                    )
                 # Deliverable review.
                 quality_score = float(np.clip(3.3 + 0.45 * s - 0.12 * (cx - 3) - 0.6 * rc + rng.normal(0, 0.55), 1, 5))
                 missing_q = rng.random() < (0.06 + (0.12 if ctx["environment"] == "internal" else 0.0))
                 first_pass = rng.random() < _sigmoid(0.4 + 0.9 * s - 0.25 * (cx - 3))
                 self.emit(
-                    employee_id=lead, project_id=pid, when=actual + timedelta(days=int(rng.integers(1, 6))),
-                    source="ms_graph", category="document_reviewed", ref=f"DOC-{mid}",
+                    employee_id=lead,
+                    project_id=pid,
+                    when=actual + timedelta(days=int(rng.integers(1, 6))),
+                    source="ms_graph",
+                    category="document_reviewed",
+                    ref=f"DOC-{mid}",
                     payload={"milestone_id": mid, "document": f"{mid} deliverable", "approved_first_pass": bool(first_pass)},
                     quality={} if missing_q else {"review_score": round(quality_score, 1), "reviewer": "quality_board"},
                 )
@@ -496,20 +687,48 @@ class _Builder:
             if status == "open" and ident + timedelta(days=60) < self.as_of and planned_end < self.as_of:
                 status = "closed"
             self.risks.append(
-                {"risk_id": rid, "project_id": pid, "owner_employee_id": lead, "title": f"{rng.choice(_RISK_TITLES)}",
-                 "severity": severity, "identified_on": ident, "mitigated_on": mit_on if status == "mitigated" else None,
-                 "status": status, "kind": "issue" if status == "issue" else "risk"}
+                {
+                    "risk_id": rid,
+                    "project_id": pid,
+                    "owner_employee_id": lead,
+                    "title": f"{rng.choice(_RISK_TITLES)}",
+                    "severity": severity,
+                    "identified_on": ident,
+                    "mitigated_on": mit_on if status == "mitigated" else None,
+                    "status": status,
+                    "kind": "issue" if status == "issue" else "risk",
+                }
             )
-            self.emit(employee_id=lead, project_id=pid, when=ident, source="pmo_register", category="risk_identified",
-                      ref=f"RAID-{rid}", payload={"risk_id": rid, "severity": severity, "proactive": bool(proactive)},
-                      quality={"identified_before_impact": bool(proactive)})
+            self.emit(
+                employee_id=lead,
+                project_id=pid,
+                when=ident,
+                source="pmo_register",
+                category="risk_identified",
+                ref=f"RAID-{rid}",
+                payload={"risk_id": rid, "severity": severity, "proactive": bool(proactive)},
+                quality={"identified_before_impact": bool(proactive)},
+            )
             if mitigated:
-                self.emit(employee_id=lead, project_id=pid, when=mit_on, source="pmo_register", category="risk_mitigated",
-                          ref=f"RAID-{rid}-M", payload={"risk_id": rid, "days_to_mitigate": mit_days, "severity": severity})
+                self.emit(
+                    employee_id=lead,
+                    project_id=pid,
+                    when=mit_on,
+                    source="pmo_register",
+                    category="risk_mitigated",
+                    ref=f"RAID-{rid}-M",
+                    payload={"risk_id": rid, "days_to_mitigate": mit_days, "severity": severity},
+                )
             elif materialised:
-                self.emit(employee_id=lead, project_id=pid, when=ident + timedelta(days=int(rng.integers(10, 40))),
-                          source="pmo_register", category="issue_raised", ref=f"RAID-{rid}-I",
-                          payload={"risk_id": rid, "severity": severity})
+                self.emit(
+                    employee_id=lead,
+                    project_id=pid,
+                    when=ident + timedelta(days=int(rng.integers(10, 40))),
+                    source="pmo_register",
+                    category="issue_raised",
+                    ref=f"RAID-{rid}-I",
+                    payload={"risk_id": rid, "severity": severity},
+                )
 
         # Blockers.
         for k in range(int(rng.poisson(0.6 + 0.5 * dep + rc))):
@@ -517,11 +736,25 @@ class _Builder:
             s = skill_at(raised)
             days = int(max(1, rng.gamma(2.0, max(1.0, (6 - 2 * s + 8 * rc) / 2))))
             ref = f"JIRA-{pid}-B{k + 1}"
-            self.emit(employee_id=lead, project_id=pid, when=raised, source="jira", category="blocker_raised",
-                      ref=ref, payload={"blocker_id": ref})
-            self.emit(employee_id=lead, project_id=pid, when=raised + timedelta(days=days), source="jira",
-                      category="blocker_resolved", ref=ref + "-R", payload={"blocker_id": ref, "days_to_resolve": days},
-                      quality={"days_to_resolve": days})
+            self.emit(
+                employee_id=lead,
+                project_id=pid,
+                when=raised,
+                source="jira",
+                category="blocker_raised",
+                ref=ref,
+                payload={"blocker_id": ref},
+            )
+            self.emit(
+                employee_id=lead,
+                project_id=pid,
+                when=raised + timedelta(days=days),
+                source="jira",
+                category="blocker_resolved",
+                ref=ref + "-R",
+                payload={"blocker_id": ref, "days_to_resolve": days},
+                quality={"days_to_resolve": days},
+            )
 
         # Stakeholder feedback: noisy, inconsistent and strongly visibility-driven.
         for k in range(int(rng.integers(1, 4))):
@@ -529,26 +762,51 @@ class _Builder:
                 continue  # survey not returned
             when = start + timedelta(days=int(rng.integers(30, max(31, duration))))
             score = int(np.clip(round(3.2 + 0.25 * skill_at(when) + 0.55 * t.visibility + rng.normal(0, 1.0)), 1, 5))
-            self.emit(employee_id=lead, project_id=pid, when=when, source="stakeholder_survey",
-                      category="stakeholder_feedback", ref=f"SURVEY-{pid}-{k + 1}",
-                      payload={"score": score, "respondent_role": str(rng.choice(["sponsor", "business_owner", "end_user_rep"]))},
-                      quality={"response_scale": "1-5", "single_respondent": True})
+            self.emit(
+                employee_id=lead,
+                project_id=pid,
+                when=when,
+                source="stakeholder_survey",
+                category="stakeholder_feedback",
+                ref=f"SURVEY-{pid}-{k + 1}",
+                payload={"score": score, "respondent_role": str(rng.choice(["sponsor", "business_owner", "end_user_rep"]))},
+                quality={"response_scale": "1-5", "single_respondent": True},
+            )
 
         completed = last_actual is not None and all(m["status"] == "achieved" for m in self.milestones[-n_ms:])
         actual_end = last_actual if completed else None
         if completed:
             budget_var = float(2 + 6 * rc + 2 * (cx - 3) - 3 * skill_at(last_actual) + rng.normal(0, 6))
-            self.emit(employee_id=lead, project_id=pid, when=last_actual + timedelta(days=7), source="pmo_register",
-                      category="project_outcome", ref=f"PMO-{pid}-CLOSE",
-                      payload={"final_schedule_variance_pct": round(last_svp or 0.0, 1), "budget_variance_pct": round(budget_var, 1),
-                               "benefits_case_met": bool(rng.random() < _sigmoid(0.3 + 0.6 * skill_at(last_actual) - 0.4 * rc))},
-                      quality={"closure_review": "pmo_gate_5"})
+            self.emit(
+                employee_id=lead,
+                project_id=pid,
+                when=last_actual + timedelta(days=7),
+                source="pmo_register",
+                category="project_outcome",
+                ref=f"PMO-{pid}-CLOSE",
+                payload={
+                    "final_schedule_variance_pct": round(last_svp or 0.0, 1),
+                    "budget_variance_pct": round(budget_var, 1),
+                    "benefits_case_met": bool(rng.random() < _sigmoid(0.3 + 0.6 * skill_at(last_actual) - 0.4 * rc)),
+                },
+                quality={"closure_review": "pmo_gate_5"},
+            )
         status = "completed" if completed else ("active" if start <= self.as_of else "planned")
         self.projects.append(
-            {"project_id": pid, "tenant_id": cfg.tenant_id, "name": name, "business_unit": emp.business_unit,
-             "lead_employee_id": lead, "kind": "programme_workstream" if programme else "project",
-             "start_date": start, "planned_end": planned_end, "actual_end": actual_end, "status": status,
-             "is_synthetic": True, **ctx}
+            {
+                "project_id": pid,
+                "tenant_id": cfg.tenant_id,
+                "name": name,
+                "business_unit": emp.business_unit,
+                "lead_employee_id": lead,
+                "kind": "programme_workstream" if programme else "project",
+                "start_date": start,
+                "planned_end": planned_end,
+                "actual_end": actual_end,
+                "status": status,
+                "is_synthetic": True,
+                **ctx,
+            }
         )
 
     # -------------------------------------------------------------- activity
@@ -566,16 +824,26 @@ class _Builder:
                 if d < emp.joined_on:
                     continue
                 self.emit(
-                    employee_id=emp.employee_id, project_id=None, when=d, source="ms_graph", category="activity_summary",
-                    ref=f"GRAPH-ACT-{emp.employee_id}-{d:%Y%m}", data_category="diagnostic_activity",
-                    payload={"month": f"{d:%Y-%m}", "meetings_attended": int(rng.poisson(max(4, 22 + 9 * a))),
-                             "emails_sent": int(rng.poisson(max(20, 160 + 70 * a))),
-                             "working_hours": round(float(np.clip(160 + 14 * a + rng.normal(0, 8), 120, 230)), 1)},
+                    employee_id=emp.employee_id,
+                    project_id=None,
+                    when=d,
+                    source="ms_graph",
+                    category="activity_summary",
+                    ref=f"GRAPH-ACT-{emp.employee_id}-{d:%Y%m}",
+                    data_category="diagnostic_activity",
+                    payload={
+                        "month": f"{d:%Y-%m}",
+                        "meetings_attended": int(rng.poisson(max(4, 22 + 9 * a))),
+                        "emails_sent": int(rng.poisson(max(20, 160 + 70 * a))),
+                        "working_hours": round(float(np.clip(160 + 14 * a + rng.normal(0, 8), 120, 230)), 1),
+                    },
                     quality={"metadata_only": True, "content_collected": False},
                 )
 
     # --------------------------------------------------------------- ratings
-    def build_ratings(self, employees: pd.DataFrame, truth: pd.DataFrame, protected: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def build_ratings(
+        self, employees: pd.DataFrame, truth: pd.DataFrame, protected: pd.DataFrame
+    ) -> tuple[pd.DataFrame, pd.DataFrame]:
         rng = self.rng
         ms = pd.DataFrame(self.milestones)
         ms = ms[ms["status"] == "achieved"].copy()
@@ -598,12 +866,24 @@ class _Builder:
                 tr = tmap.loc[emp.employee_id]
                 s = tr.true_contribution + tr.growth_per_year * self.month_index(mid) / 12
                 latent = (
-                    0.55 * float(ot_z.get(emp.employee_id, 0.0)) + 0.5 * tr.visibility + 0.35 * tr.activity_propensity
-                    + 0.2 * s + tr.rater_leniency - (0.3 if gmap[emp.employee_id] == "G2" else 0.0) + rng.normal(0, 0.55)
+                    0.55 * float(ot_z.get(emp.employee_id, 0.0))
+                    + 0.5 * tr.visibility
+                    + 0.35 * tr.activity_propensity
+                    + 0.2 * s
+                    + tr.rater_leniency
+                    - (0.3 if gmap[emp.employee_id] == "G2" else 0.0)
+                    + rng.normal(0, 0.55)
                 )
                 latent_by_period.append(latent)
-                rows.append({"employee_id": emp.employee_id, "rater_id": emp.manager_id, "period": f"H{k + 1}",
-                             "period_end": p_end, "_latent": latent})
+                rows.append(
+                    {
+                        "employee_id": emp.employee_id,
+                        "rater_id": emp.manager_id,
+                        "period": f"H{k + 1}",
+                        "period_end": p_end,
+                        "_latent": latent,
+                    }
+                )
         df = pd.DataFrame(rows)
         cuts = np.quantile(df["_latent"], [0.05, 0.25, 0.70, 0.92])
         df["manager_rating"] = 1 + np.searchsorted(cuts, df["_latent"].to_numpy())
@@ -633,25 +913,53 @@ class _Builder:
             upcoming_ms = open_ms[(open_ms["project_id"] == p["project_id"]) & (open_ms["status"] != "achieved")]
             next_ms = upcoming_ms["name"].iloc[0] if len(upcoming_ms) else "closure"
             transcript = _transcript(rng, p, nm, attendees, past, next_ms)
-            rows.append({"meeting_id": f"{p['project_id']}-MTG-{past:%Y%m%d}", "tenant_id": self.cfg.tenant_id,
-                         "project_id": p["project_id"], "title": f"{p['name']} — weekly delivery sync",
-                         "scheduled_at": datetime.combine(past, time(10, 0)).isoformat(), "attendees": attendees,
-                         "organiser_id": lead, "transcript": transcript, "data_category": "assistance", "is_synthetic": True})
+            rows.append(
+                {
+                    "meeting_id": f"{p['project_id']}-MTG-{past:%Y%m%d}",
+                    "tenant_id": self.cfg.tenant_id,
+                    "project_id": p["project_id"],
+                    "title": f"{p['name']} — weekly delivery sync",
+                    "scheduled_at": datetime.combine(past, time(10, 0)).isoformat(),
+                    "attendees": attendees,
+                    "organiser_id": lead,
+                    "transcript": transcript,
+                    "data_category": "assistance",
+                    "is_synthetic": True,
+                }
+            )
             for k in range(int(rng.integers(1, 3))):
                 fut = self.as_of + timedelta(days=int(rng.integers(0, 8)))
-                rows.append({"meeting_id": f"{p['project_id']}-MTG-{fut:%Y%m%d}-{k}", "tenant_id": self.cfg.tenant_id,
-                             "project_id": p["project_id"],
-                             "title": f"{p['name']} — {rng.choice(['steering committee', 'risk review', 'stakeholder check-in', 'dependency sync'])}",
-                             "scheduled_at": datetime.combine(fut, time(int(rng.integers(9, 17)), 0)).isoformat(),
-                             "attendees": attendees, "organiser_id": lead, "transcript": None,
-                             "data_category": "assistance", "is_synthetic": True})
+                rows.append(
+                    {
+                        "meeting_id": f"{p['project_id']}-MTG-{fut:%Y%m%d}-{k}",
+                        "tenant_id": self.cfg.tenant_id,
+                        "project_id": p["project_id"],
+                        "title": f"{p['name']} — {rng.choice(_MEETING_KINDS)}",
+                        "scheduled_at": datetime.combine(fut, time(int(rng.integers(9, 17)), 0)).isoformat(),
+                        "attendees": attendees,
+                        "organiser_id": lead,
+                        "transcript": None,
+                        "data_category": "assistance",
+                        "is_synthetic": True,
+                    }
+                )
         return pd.DataFrame(rows)
 
 
+_MEETING_KINDS = ("steering committee", "risk review", "stakeholder check-in", "dependency sync")
 _RISK_TITLES = (
-    "Vendor delivery slippage", "Key resource availability", "Test environment instability", "Data migration quality",
-    "Regulatory interpretation change", "Integration defects", "Budget approval delay", "Security review backlog",
-    "Stakeholder alignment", "Licence procurement lead time", "Legacy system knowledge gap", "Performance at scale",
+    "Vendor delivery slippage",
+    "Key resource availability",
+    "Test environment instability",
+    "Data migration quality",
+    "Regulatory interpretation change",
+    "Integration defects",
+    "Budget approval delay",
+    "Security review backlog",
+    "Stakeholder alignment",
+    "Licence procurement lead time",
+    "Legacy system knowledge gap",
+    "Performance at scale",
 )
 
 _ACTION_TEMPLATES = (
@@ -661,14 +969,25 @@ _ACTION_TEMPLATES = (
     "{o}: I will {verb} by {due}.",
 )
 _VERBS = (
-    "update the delivery plan", "send the revised estimate to the sponsor", "confirm test environment dates",
-    "draft the change request", "chase the vendor for the contract amendment", "review the data migration results",
-    "prepare the steering committee pack", "book the cutover rehearsal", "close out the open security findings",
-    "circulate the RAID log", "agree acceptance criteria with the business owner",
+    "update the delivery plan",
+    "send the revised estimate to the sponsor",
+    "confirm test environment dates",
+    "draft the change request",
+    "chase the vendor for the contract amendment",
+    "review the data migration results",
+    "prepare the steering committee pack",
+    "book the cutover rehearsal",
+    "close out the open security findings",
+    "circulate the RAID log",
+    "agree acceptance criteria with the business owner",
 )
 _DECISIONS = (
-    "move the go-live to a phased rollout", "defer the reporting module to phase two", "use the existing API gateway",
-    "freeze scope for this release", "run an additional regression cycle", "bring in a contractor for testing",
+    "move the go-live to a phased rollout",
+    "defer the reporting module to phase two",
+    "use the existing API gateway",
+    "freeze scope for this release",
+    "run an additional regression cycle",
+    "bring in a contractor for testing",
 )
 _RISK_LINES = (
     "There's a risk that the vendor misses the hardware delivery date.",
@@ -682,8 +1001,10 @@ def _transcript(rng, project, nm, attendees, when: date, next_ms: str) -> str:
     lead = nm[attendees[0]]
     o1 = nm[attendees[1]] if len(attendees) > 1 else lead
     o2 = nm[attendees[-1]]
+
     def due(days):
         return str(when + timedelta(days=days))
+
     lines = [
         f"{lead}: Thanks for joining. Quick status on {project['name']}.",
         f"{o1}: Build is on track; we finished the integration tests for {next_ms.lower()} prep.",

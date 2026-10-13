@@ -89,12 +89,16 @@ HIDDEN_GROUND_TRUTH_COLUMNS = (
     "rater_leniency",
 )
 
-FORBIDDEN_MODEL_COLUMNS = HIDDEN_GROUND_TRUTH_COLUMNS + PROTECTED_ATTRIBUTE_COLUMNS + (
-    # Historical labels are potentially biased and must not be used as features.
-    "manager_rating",
-    "promoted",
-    # Activity volume is diagnostic only.
-    "meetings_attended",
-    "emails_sent",
-    "working_hours",
+FORBIDDEN_MODEL_COLUMNS = (
+    HIDDEN_GROUND_TRUTH_COLUMNS
+    + PROTECTED_ATTRIBUTE_COLUMNS
+    + (
+        # Historical labels are potentially biased and must not be used as features.
+        "manager_rating",
+        "promoted",
+        # Activity volume is diagnostic only.
+        "meetings_attended",
+        "emails_sent",
+        "working_hours",
+    )
 )

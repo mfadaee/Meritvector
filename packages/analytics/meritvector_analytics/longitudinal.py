@@ -42,8 +42,12 @@ def period_series(m: pd.DataFrame, ols_res, d: pd.DataFrame, outcome: str) -> pd
     r = d.assign(signal=sign * ols_res.resid)
     g = r.groupby(["employee_id", "period"])
     return pd.DataFrame(
-        {"signal_mean": g["signal"].mean(), "signal_se": g["signal"].std() / np.sqrt(g.size()), "n": g.size(),
-         "raw_mean": g[outcome].mean()}
+        {
+            "signal_mean": g["signal"].mean(),
+            "signal_se": g["signal"].std() / np.sqrt(g.size()),
+            "n": g.size(),
+            "raw_mean": g[outcome].mean(),
+        }
     ).reset_index()
 
 
@@ -75,8 +79,17 @@ def trends(series: pd.DataFrame) -> pd.DataFrame:
         se = float(np.sqrt(max(cov[1, 1], 1e-12)))
         t = beta[1] / se
         p = float(2 * stats.t.sf(abs(t), dof))
-        rows.append({"employee_id": emp, "periods": len(s), "slope": float(beta[1]), "slope_se": se, "p_value": p,
-                     "first_period_signal": float(y[0]), "last_period_signal": float(y[-1])})
+        rows.append(
+            {
+                "employee_id": emp,
+                "periods": len(s),
+                "slope": float(beta[1]),
+                "slope_se": se,
+                "p_value": p,
+                "first_period_signal": float(y[0]),
+                "last_period_signal": float(y[-1]),
+            }
+        )
     out = pd.DataFrame(rows)
     tested = out["p_value"].notna()
     out["significant_fdr"] = False

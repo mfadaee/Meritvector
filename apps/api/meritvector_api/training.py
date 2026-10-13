@@ -69,8 +69,12 @@ def train_tenant(db: Session, tenant_id: str, n_boot: int | None = None) -> Mode
     # Protected attributes are loaded only for the aggregated fairness audit inside the pipeline.
     protected = _rows(db, ProtectedAttribute, tenant_id)
     result = run_pipeline(
-        f["events"], f["employees"], str(tenant.as_of),
-        manager_ratings=f["ratings"], promotions=f["promotions"], protected_attributes=protected,
+        f["events"],
+        f["employees"],
+        str(tenant.as_of),
+        manager_ratings=f["ratings"],
+        promotions=f["promotions"],
+        protected_attributes=protected,
         n_boot=n_boot or s.bootstrap_n_boot,
     )
     out_dir = save_artifacts(result, s.artifact_dir / tenant_id)
@@ -87,10 +91,19 @@ def train_tenant(db: Session, tenant_id: str, n_boot: int | None = None) -> Mode
         "risk_trends": _json(result.risk_trends.to_dict("records")),
     }
     run = ModelRun(
-        id=result.version, tenant_id=tenant_id, created_at=now(), status="completed", data_hash=result.data_hash,
-        config=_json(result.config), metrics=_json(result.metrics), experiment=_json(result.experiment),
-        fairness=_json(result.fairness), portfolio=portfolio, synthetic_evaluation=synthetic_eval,
-        model_card=result.model_card, artifact_path=str(out_dir),
+        id=result.version,
+        tenant_id=tenant_id,
+        created_at=now(),
+        status="completed",
+        data_hash=result.data_hash,
+        config=_json(result.config),
+        metrics=_json(result.metrics),
+        experiment=_json(result.experiment),
+        fairness=_json(result.fairness),
+        portfolio=portfolio,
+        synthetic_evaluation=synthetic_eval,
+        model_card=result.model_card,
+        artifact_path=str(out_dir),
     )
     db.add(run)
     db.flush()
@@ -106,10 +119,27 @@ def train_tenant(db: Session, tenant_id: str, n_boot: int | None = None) -> Mode
     for emp_id in f["employees"]["employee_id"]:
         e = est[est["employee_id"] == emp_id]
         payload = {
-            "estimates": {r["outcome"]: _json({k: r[k] for k in ("adjusted_estimate", "adjusted_se", "ci_low", "ci_high", "n",
-                                                                 "conclusion", "raw_estimate", "raw_mean", "raw_se",
-                                                                 "residual_estimate", "context_expected")})
-                          for r in e.to_dict("records")},
+            "estimates": {
+                r["outcome"]: _json(
+                    {
+                        k: r[k]
+                        for k in (
+                            "adjusted_estimate",
+                            "adjusted_se",
+                            "ci_low",
+                            "ci_high",
+                            "n",
+                            "conclusion",
+                            "raw_estimate",
+                            "raw_mean",
+                            "raw_se",
+                            "residual_estimate",
+                            "context_expected",
+                        )
+                    }
+                )
+                for r in e.to_dict("records")
+            },
             "raw_metrics": _json(metrics.loc[emp_id].to_dict()) if emp_id in metrics.index else {},
             "trend": _json(trend.loc[emp_id].to_dict()) if emp_id in trend.index else {"trend_status": "insufficient_history"},
             "trend_series": _json(series[series["employee_id"] == emp_id].drop(columns="employee_id").to_dict("records")),
@@ -125,5 +155,7 @@ def train_tenant(db: Session, tenant_id: str, n_boot: int | None = None) -> Mode
 
 def latest_run(db: Session, tenant_id: str) -> ModelRun | None:
     return db.scalars(
-        select(ModelRun).where(ModelRun.tenant_id == tenant_id, ModelRun.status == "completed").order_by(ModelRun.created_at.desc())
+        select(ModelRun)
+        .where(ModelRun.tenant_id == tenant_id, ModelRun.status == "completed")
+        .order_by(ModelRun.created_at.desc())
     ).first()

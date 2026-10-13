@@ -27,7 +27,7 @@ from meritvector_analytics.contextual import (
     mixed_estimates,
     residual_estimates,
 )
-from meritvector_analytics.features import CONTEXT_CATEGORICAL, CONTEXT_NUMERIC, LeakageError, design_matrix
+from meritvector_analytics.features import CONTEXT_NUMERIC, LeakageError, design_matrix
 from meritvector_shared import FORBIDDEN_MODEL_COLUMNS
 
 OUTCOME = "schedule_variance_pct"
@@ -35,8 +35,11 @@ MIN_FAIRNESS_CELL = 20
 
 
 def _metrics(y, p) -> dict[str, float]:
-    return {"mae": float(mean_absolute_error(y, p)), "rmse": float(np.sqrt(mean_squared_error(y, p))),
-            "r2": float(r2_score(y, p))}
+    return {
+        "mae": float(mean_absolute_error(y, p)),
+        "rmse": float(np.sqrt(mean_squared_error(y, p))),
+        "r2": float(r2_score(y, p)),
+    }
 
 
 def out_of_time_split(m: pd.DataFrame, holdout_months: int = 6) -> tuple[pd.DataFrame, pd.DataFrame, str]:
@@ -76,8 +79,13 @@ def baseline_comparison(train: pd.DataFrame, test: pd.DataFrame) -> dict[str, An
     results["context_plus_employee_mixed"] = _metrics(yte, pred)
 
     best = min(results, key=lambda name: results[name]["mae"])
-    return {"models": results, "best_by_mae": best, "n_train": int(len(train)), "n_test": int(len(test)),
-            "test_employees_unseen": int((~test["employee_id"].isin(train["employee_id"])).sum())}
+    return {
+        "models": results,
+        "best_by_mae": best,
+        "n_train": int(len(train)),
+        "n_test": int(len(test)),
+        "test_employees_unseen": int((~test["employee_id"].isin(train["employee_id"])).sum()),
+    }
 
 
 def grouped_cross_validation(train: pd.DataFrame, folds: int = 5) -> dict[str, Any]:
@@ -97,25 +105,48 @@ def leakage_checks(m: pd.DataFrame, train: pd.DataFrame, test: pd.DataFrame) -> 
     checks = []
     X = design_matrix(m)
     forbidden = sorted(set(X.columns) & set(FORBIDDEN_MODEL_COLUMNS))
-    checks.append({"check": "No hidden ground truth, protected attributes, ratings or activity in features",
-                   "passed": not forbidden, "detail": forbidden or "none present"})
+    checks.append(
+        {
+            "check": "No hidden ground truth, protected attributes, ratings or activity in features",
+            "passed": not forbidden,
+            "detail": forbidden or "none present",
+        }
+    )
     banned_outcome_derived = {"actual_date", "slip_days", "on_time", "quality_score", "approved_first_pass", OUTCOME}
     present = sorted(set(X.columns) & banned_outcome_derived)
-    checks.append({"check": "No outcome-derived fields in the design matrix", "passed": not present,
-                   "detail": present or "none present"})
-    checks.append({"check": "Out-of-time split is strictly chronological",
-                   "passed": bool(train["planned_date"].max() < test["planned_date"].min()),
-                   "detail": f"train ≤ {train['planned_date'].max().date()} < test ≥ {test['planned_date'].min().date()}"})
+    checks.append(
+        {"check": "No outcome-derived fields in the design matrix", "passed": not present, "detail": present or "none present"}
+    )
+    checks.append(
+        {
+            "check": "Out-of-time split is strictly chronological",
+            "passed": bool(train["planned_date"].max() < test["planned_date"].min()),
+            "detail": f"train ≤ {train['planned_date'].max().date()} < test ≥ {test['planned_date'].min().date()}",
+        }
+    )
     corr = X.apply(lambda c: abs(np.corrcoef(c, m[OUTCOME])[0, 1]) if c.std() > 0 else 0.0)
-    checks.append({"check": "No single feature near-perfectly predicts the outcome (|r| < 0.9)",
-                   "passed": bool((corr < 0.9).all()), "detail": f"max |r| = {corr.max():.2f} ({corr.idxmax()})"})
-    # Permutation sanity: a model trained on a shuffled target must not predict the test set.
+    checks.append(
+        {
+            "check": "No single feature near-perfectly predicts the outcome (|r| < 0.9)",
+            "passed": bool((corr < 0.9).all()),
+            "detail": f"max |r| = {corr.max():.2f} ({corr.idxmax()})",
+        }
+    )
+    # Permutation sanity: models trained on shuffled targets must have no out-of-time skill on average.
     rng = np.random.default_rng(0)
     Xtr, Xte = _align(design_matrix(train), design_matrix(test))
-    perm = LinearRegression().fit(Xtr, rng.permutation(train[OUTCOME].to_numpy()))
-    r2 = r2_score(test[OUTCOME], perm.predict(Xte))
-    checks.append({"check": "Permuted-target model has no out-of-time skill (R² ≤ 0.02)", "passed": bool(r2 <= 0.02),
-                   "detail": f"R² = {r2:.3f}"})
+    r2s = [
+        r2_score(test[OUTCOME], LinearRegression().fit(Xtr, rng.permutation(train[OUTCOME].to_numpy())).predict(Xte))
+        for _ in range(20)
+    ]
+    r2 = float(np.mean(r2s))
+    checks.append(
+        {
+            "check": "Permuted-target models have no out-of-time skill (mean R² over 20 shuffles ≤ 0.02)",
+            "passed": bool(r2 <= 0.02),
+            "detail": f"mean R² = {r2:.3f} (max {max(r2s):.3f})",
+        }
+    )
     return checks
 
 
@@ -145,8 +176,9 @@ def cluster_bootstrap_effects(m: pd.DataFrame, n_boot: int = 200, seed: int = 0)
             draws[b] = sign * sums / np.where(cnt > 0, cnt, np.nan)
     lo = np.nanpercentile(draws, 2.5, axis=0)
     hi = np.nanpercentile(draws, 97.5, axis=0)
-    return pd.DataFrame({"employee_id": emp_index, "boot_ci_low": lo, "boot_ci_high": hi,
-                         "boot_valid_draws": np.isfinite(draws).sum(axis=0)})
+    return pd.DataFrame(
+        {"employee_id": emp_index, "boot_ci_low": lo, "boot_ci_high": hi, "boot_valid_draws": np.isfinite(draws).sum(axis=0)}
+    )
 
 
 def calibration(train: pd.DataFrame, test: pd.DataFrame, threshold: float = 10.0, bins: int = 10) -> dict[str, Any]:
@@ -167,9 +199,13 @@ def calibration(train: pd.DataFrame, test: pd.DataFrame, threshold: float = 10.0
         mp, fo = float(p[sel].mean()), float(yte[sel].mean())
         ece += sel.mean() * abs(mp - fo)
         table.append({"bin": b, "mean_predicted": mp, "observed_rate": fo, "n": int(sel.sum())})
-    return {"event": f"milestone slips more than {threshold:.0f}% of its interval", "brier": float(brier_score_loss(yte, p)),
-            "brier_climatology": float(brier_score_loss(yte, np.full_like(p, ytr.mean()))),
-            "expected_calibration_error": float(ece), "reliability": table}
+    return {
+        "event": f"milestone slips more than {threshold:.0f}% of its interval",
+        "brier": float(brier_score_loss(yte, p)),
+        "brier_climatology": float(brier_score_loss(yte, np.full_like(p, ytr.mean()))),
+        "expected_calibration_error": float(ece),
+        "reliability": table,
+    }
 
 
 def sensitivity(m: pd.DataFrame, base: pd.DataFrame) -> dict[str, Any]:
@@ -177,8 +213,14 @@ def sensitivity(m: pd.DataFrame, base: pd.DataFrame) -> dict[str, Any]:
     specs: dict[str, dict[str, Any]] = {
         "no_project_variance_component": {"project_vc": False},
         "add_business_unit_fixed_effects": {"formula": context_formula(OUTCOME, extra="C(business_unit)")},
-        "drop_resource_constraint": {"formula": context_formula(OUTCOME, numeric=[c for c in CONTEXT_NUMERIC if c != "resource_constraint"])},
-        "drop_complexity_and_dependencies": {"formula": context_formula(OUTCOME, numeric=[c for c in CONTEXT_NUMERIC if c not in ("technical_complexity", "dependency_count")])},
+        "drop_resource_constraint": {
+            "formula": context_formula(OUTCOME, numeric=[c for c in CONTEXT_NUMERIC if c != "resource_constraint"])
+        },
+        "drop_complexity_and_dependencies": {
+            "formula": context_formula(
+                OUTCOME, numeric=[c for c in CONTEXT_NUMERIC if c not in ("technical_complexity", "dependency_count")]
+            )
+        },
         "winsorised_outcome_5_95": {"winsor": True},
         "no_context_adjustment": {"formula": f"{OUTCOME} ~ 1"},
     }
@@ -225,8 +267,9 @@ def missing_data_diagnostics(m: pd.DataFrame, events: pd.DataFrame, employees: p
         "quality_missing_by_environment": {k: float(v) for k, v in by_env.items()},
         "quality_missingness_depends_on_environment_p": chi2_p,
         "interpretation": "Quality scores are not missing completely at random (missingness depends on delivery "
-                          "environment). Quality models condition on environment; complete-case estimates may still be biased."
-        if chi2_p < 0.05 else "No evidence that quality missingness depends on delivery environment.",
+        "environment). Quality models condition on environment; complete-case estimates may still be biased."
+        if chi2_p < 0.05
+        else "No evidence that quality missingness depends on delivery environment.",
         "employees_below_min_evidence": int((counts < MIN_MILESTONES).sum()),
         "employees_with_no_milestones": int((counts == 0).sum()),
         "projects_without_stakeholder_feedback": int(len(set(projects) - set(feedback.index))),
@@ -249,9 +292,17 @@ def drift(train: pd.DataFrame, test: pd.DataFrame) -> list[dict[str, Any]]:
         a, b = train[c].dropna().to_numpy(float), test[c].dropna().to_numpy(float)
         ks = stats.ks_2samp(a, b)
         psi = _psi(a, b)
-        rows.append({"feature": c, "train_mean": float(a.mean()), "test_mean": float(b.mean()), "ks_stat": float(ks.statistic),
-                     "ks_p": float(ks.pvalue), "psi": psi,
-                     "status": "major_shift" if psi > 0.25 else ("moderate_shift" if psi > 0.1 else "stable")})
+        rows.append(
+            {
+                "feature": c,
+                "train_mean": float(a.mean()),
+                "test_mean": float(b.mean()),
+                "ks_stat": float(ks.statistic),
+                "ks_p": float(ks.pvalue),
+                "psi": psi,
+                "status": "major_shift" if psi > 0.25 else ("moderate_shift" if psi > 0.1 else "stable"),
+            }
+        )
     return rows
 
 
@@ -263,17 +314,22 @@ def prediction_error_analysis(train: pd.DataFrame, test: pd.DataFrame) -> dict[s
     out = {}
     for col in ("technical_complexity", "environment", "business_unit", "resource_band", "job_family"):
         g = t.groupby(col)
-        out[col] = [{"group": str(k), "mae": float(v["abs_err"].mean()), "mean_error": float(v["err"].mean()), "n": int(len(v))}
-                    for k, v in g]
+        out[col] = [
+            {"group": str(k), "mae": float(v["abs_err"].mean()), "mean_error": float(v["err"].mean()), "n": int(len(v))}
+            for k, v in g
+        ]
     return out
 
 
 def label_audit(estimates: pd.DataFrame, ratings: pd.DataFrame, raw: pd.DataFrame, activity: pd.DataFrame) -> dict[str, Any]:
     """How do historical manager ratings relate to raw outcomes, adjusted evidence and activity?"""
     r = ratings.groupby("employee_id")["manager_rating"].mean().rename("rating")
-    d = (estimates.set_index("employee_id")[["adjusted_estimate"]].join(r, how="inner")
-         .join(raw.set_index("employee_id")[["raw_estimate"]], how="left")
-         .join(activity.set_index("employee_id")[["meetings_per_month"]], how="left")).dropna()
+    d = (
+        estimates.set_index("employee_id")[["adjusted_estimate"]]
+        .join(r, how="inner")
+        .join(raw.set_index("employee_id")[["raw_estimate"]], how="left")
+        .join(activity.set_index("employee_id")[["meetings_per_month"]], how="left")
+    ).dropna()
 
     def rho(a, b):
         return float(stats.spearmanr(d[a], d[b]).statistic)
@@ -285,13 +341,21 @@ def label_audit(estimates: pd.DataFrame, ratings: pd.DataFrame, raw: pd.DataFram
         "rating_vs_meeting_volume_spearman": rho("rating", "meetings_per_month"),
         "adjusted_estimate_vs_meeting_volume_spearman": rho("adjusted_estimate", "meetings_per_month"),
         "interpretation": "Manager ratings are treated as potentially biased labels. A stronger association with "
-                          "raw outcomes or activity volume than with context-adjusted evidence suggests ratings "
-                          "reward favourable circumstances or visible activity.",
+        "raw outcomes or activity volume than with context-adjusted evidence suggests ratings "
+        "reward favourable circumstances or visible activity.",
     }
 
 
-def fairness_audit(protected: pd.DataFrame, estimates: pd.DataFrame, raw: pd.DataFrame, ratings: pd.DataFrame,
-                   promotions: pd.DataFrame, min_cell: int = MIN_FAIRNESS_CELL, n_boot: int = 500, seed: int = 0) -> dict[str, Any]:
+def fairness_audit(
+    protected: pd.DataFrame,
+    estimates: pd.DataFrame,
+    raw: pd.DataFrame,
+    ratings: pd.DataFrame,
+    promotions: pd.DataFrame,
+    min_cell: int = MIN_FAIRNESS_CELL,
+    n_boot: int = 500,
+    seed: int = 0,
+) -> dict[str, Any]:
     """Aggregated fairness audit. Returns group-level statistics only; cells < min_cell are suppressed.
 
     The protected attribute is joined here, inside the audit, and never leaves it at
@@ -300,26 +364,44 @@ def fairness_audit(protected: pd.DataFrame, estimates: pd.DataFrame, raw: pd.Dat
     rng = np.random.default_rng(seed)
     r = ratings.groupby("employee_id")["manager_rating"].mean().rename("rating")
     p = promotions.groupby("employee_id")["promoted"].max().astype(float).rename("promoted")
-    d = (protected.set_index("employee_id")[["protected_group"]]
-         .join(estimates.set_index("employee_id")[["adjusted_estimate"]], how="inner")
-         .join(raw.set_index("employee_id")[["raw_estimate"]], how="left").join(r).join(p))
+    d = (
+        protected.set_index("employee_id")[["protected_group"]]
+        .join(estimates.set_index("employee_id")[["adjusted_estimate"]], how="inner")
+        .join(raw.set_index("employee_id")[["raw_estimate"]], how="left")
+        .join(r)
+        .join(p)
+    )
     groups = []
     for gname, g in d.groupby("protected_group"):
         if len(g) < min_cell:
-            groups.append({"group": gname, "n": "suppressed (<%d)" % min_cell})
+            groups.append({"group": gname, "n": f"suppressed (<{min_cell})"})
             continue
-        groups.append({"group": gname, "n": int(len(g)), "mean_rating": float(g["rating"].mean()),
-                       "promotion_rate": float(g["promoted"].mean()), "mean_adjusted_estimate": float(g["adjusted_estimate"].mean()),
-                       "mean_raw_estimate": float(g["raw_estimate"].mean())})
+        groups.append(
+            {
+                "group": gname,
+                "n": int(len(g)),
+                "mean_rating": float(g["rating"].mean()),
+                "promotion_rate": float(g["promoted"].mean()),
+                "mean_adjusted_estimate": float(g["adjusted_estimate"].mean()),
+                "mean_raw_estimate": float(g["raw_estimate"].mean()),
+            }
+        )
     gaps = {}
     names = sorted(d["protected_group"].unique())
     if len(names) == 2 and all(isinstance(x.get("n"), int) for x in groups):
         a, b = names
         for col in ("rating", "adjusted_estimate", "promoted"):
-            da, db = d.loc[d["protected_group"] == a, col].dropna().to_numpy(), d.loc[d["protected_group"] == b, col].dropna().to_numpy()
+            da, db = (
+                d.loc[d["protected_group"] == a, col].dropna().to_numpy(),
+                d.loc[d["protected_group"] == b, col].dropna().to_numpy(),
+            )
             boots = [rng.choice(da, len(da)).mean() - rng.choice(db, len(db)).mean() for _ in range(n_boot)]
-            gaps[col] = {"difference": float(da.mean() - db.mean()), "ci_low": float(np.percentile(boots, 2.5)),
-                         "ci_high": float(np.percentile(boots, 97.5)), "comparison": f"{a} minus {b}"}
+            gaps[col] = {
+                "difference": float(da.mean() - db.mean()),
+                "ci_low": float(np.percentile(boots, 2.5)),
+                "ci_high": float(np.percentile(boots, 97.5)),
+                "comparison": f"{a} minus {b}",
+            }
     finding = None
     if gaps:
         rating_gap = gaps["rating"]
@@ -328,20 +410,31 @@ def fairness_audit(protected: pd.DataFrame, estimates: pd.DataFrame, raw: pd.Dat
         evid_sig = evid_gap["ci_low"] > 0 or evid_gap["ci_high"] < 0
         opposite = np.sign(rating_gap["difference"]) != np.sign(evid_gap["difference"])
         if rating_sig and (not evid_sig or opposite):
-            finding = ("Historical manager ratings favour one group although context-adjusted delivery evidence does "
-                       "not (or points the other way). This pattern is consistent with rating bias and warrants HR "
-                       "review of the rating process. It is not evidence about any individual.")
+            finding = (
+                "Historical manager ratings favour one group although context-adjusted delivery evidence does "
+                "not (or points the other way). This pattern is consistent with rating bias and warrants HR "
+                "review of the rating process. It is not evidence about any individual."
+            )
         elif rating_sig and evid_sig:
-            finding = ("Ratings and adjusted evidence differ between groups in the same direction; investigate "
-                       "assignment patterns and unmeasured context before drawing conclusions.")
+            finding = (
+                "Ratings and adjusted evidence differ between groups in the same direction; investigate "
+                "assignment patterns and unmeasured context before drawing conclusions."
+            )
         elif evid_sig:
-            finding = ("Adjusted evidence differs between groups while ratings do not; check for differences in "
-                       "project assignment or measurement before interpreting.")
+            finding = (
+                "Adjusted evidence differs between groups while ratings do not; check for differences in "
+                "project assignment or measurement before interpreting."
+            )
         else:
             finding = "No statistically clear group difference in ratings or adjusted evidence at this sample size."
-    return {"attribute": "protected_group (synthetic)", "min_cell_size": min_cell, "groups": groups, "gaps": gaps,
-            "finding": finding,
-            "governance": "Aggregated only. Protected attributes are excluded from all individual estimates."}
+    return {
+        "attribute": "protected_group (synthetic)",
+        "min_cell_size": min_cell,
+        "groups": groups,
+        "gaps": gaps,
+        "finding": finding,
+        "governance": "Aggregated only. Protected attributes are excluded from all individual estimates.",
+    }
 
 
 def assert_training_frame_clean(df: pd.DataFrame) -> None:
@@ -350,8 +443,9 @@ def assert_training_frame_clean(df: pd.DataFrame) -> None:
         raise LeakageError(f"forbidden columns in training frame: {bad}")
 
 
-def run_validation(m: pd.DataFrame, events: pd.DataFrame, employees: pd.DataFrame, base_estimates: pd.DataFrame,
-                   n_boot: int = 200) -> dict[str, Any]:
+def run_validation(
+    m: pd.DataFrame, events: pd.DataFrame, employees: pd.DataFrame, base_estimates: pd.DataFrame, n_boot: int = 200
+) -> dict[str, Any]:
     assert_training_frame_clean(m)
     train, test, cutoff = out_of_time_split(m)
     boot = cluster_bootstrap_effects(m, n_boot=n_boot)
@@ -359,15 +453,20 @@ def run_validation(m: pd.DataFrame, events: pd.DataFrame, employees: pd.DataFram
     resid = residual_estimates(m, OUTCOME, ols, d)
     cmp = boot.merge(resid, on="employee_id").merge(base_estimates[["employee_id", "ci_low", "ci_high", "n"]], on="employee_id")
     cmp = cmp[cmp["n"] >= MIN_MILESTONES]
-    agree = float((((cmp["boot_ci_low"] > 0) == (cmp["ci_low"] > 0)) & ((cmp["boot_ci_high"] < 0) == (cmp["ci_high"] < 0))).mean())
+    agree = float(
+        (((cmp["boot_ci_low"] > 0) == (cmp["ci_low"] > 0)) & ((cmp["boot_ci_high"] < 0) == (cmp["ci_high"] < 0))).mean()
+    )
     sens = sensitivity(m, base_estimates)
     return {
         "out_of_time": {"cutoff": cutoff, **baseline_comparison(train, test)},
         "cross_validation": grouped_cross_validation(train),
         "leakage_checks": leakage_checks(m, train, test),
-        "bootstrap": {"n_boot": n_boot, "method": "cluster bootstrap over projects, residual estimator",
-                      "direction_agreement_with_mixed_intervals": agree,
-                      "median_boot_ci_width": float((boot["boot_ci_high"] - boot["boot_ci_low"]).median())},
+        "bootstrap": {
+            "n_boot": n_boot,
+            "method": "cluster bootstrap over projects, residual estimator",
+            "direction_agreement_with_mixed_intervals": agree,
+            "median_boot_ci_width": float((boot["boot_ci_high"] - boot["boot_ci_low"]).median()),
+        },
         "calibration": calibration(train, test),
         "sensitivity": sens["specifications"],
         "missing_data": missing_data_diagnostics(m, events, employees),

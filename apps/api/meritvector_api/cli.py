@@ -1,11 +1,11 @@
 """Command-line entry points.
 
-    python -m meritvector_api.cli bootstrap        # create schema, load synthetic data, train
-    python -m meritvector_api.cli generate --out data/synthetic/export
-    python -m meritvector_api.cli train [--tenant synthetic-pmo]
-    python -m meritvector_api.cli run-job <name>
-    python -m meritvector_api.cli worker [--interval 60]
-    python -m meritvector_api.cli serve
+python -m meritvector_api.cli bootstrap        # create schema, load synthetic data, train
+python -m meritvector_api.cli generate --out data/synthetic/export
+python -m meritvector_api.cli train [--tenant synthetic-pmo]
+python -m meritvector_api.cli run-job <name>
+python -m meritvector_api.cli worker [--interval 60]
+python -m meritvector_api.cli serve
 """
 
 from __future__ import annotations
@@ -62,8 +62,11 @@ def main(argv: list[str] | None = None) -> None:
         if args.cmd == "bootstrap":
             from meritvector_api.seed import bootstrap
 
-            print(json.dumps(bootstrap(db, train=not args.no_train, sandbox=not args.no_sandbox, n_boot=args.n_boot),
-                             indent=2, default=str))
+            print(
+                json.dumps(
+                    bootstrap(db, train=not args.no_train, sandbox=not args.no_sandbox, n_boot=args.n_boot), indent=2, default=str
+                )
+            )
         elif args.cmd == "train":
             from meritvector_api.training import train_tenant
 

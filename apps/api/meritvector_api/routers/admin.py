@@ -30,45 +30,77 @@ router = APIRouter(tags=["administration"])
 
 # ------------------------------------------------------------------ privacy (all users)
 DATA_INVENTORY = [
-    {"category": "assistance", "label": "Productivity assistance",
-     "what": "Meeting transcripts you attend, summaries, follow-up tasks, drafts, reminders.",
-     "why": "To help you coordinate work.", "used_for_assessment": False,
-     "sources": ["Microsoft Teams (mock)", "Outlook calendar (mock)", "Items you create"]},
-    {"category": "org_reporting", "label": "Organisational reporting",
-     "what": "Project registers: milestones, risks, issues, dependencies, project status and health.",
-     "why": "Portfolio management and status reporting.", "used_for_assessment": False,
-     "sources": ["PMO register (mock)", "Jira / Asana / monday.com (mock)"]},
-    {"category": "assessment_evidence", "label": "Performance-assessment evidence",
-     "what": "Validated work records: milestones achieved, risks mitigated, blockers and dependencies resolved, "
-             "deliverable reviews, stakeholder survey results, project outcomes and operating context.",
-     "why": "Evidence-based, context-adjusted development conversations — only after governance approval.",
-     "used_for_assessment": True,
-     "sources": ["Jira / Asana / monday.com (mock)", "Microsoft Graph document approvals (mock)", "PMO register (mock)",
-                 "Stakeholder survey (mock)"]},
-    {"category": "diagnostic_activity", "label": "Activity metadata (synthetic diagnostics only)",
-     "what": "Monthly counts of meetings, e-mails and hours in the synthetic dataset. No content.",
-     "why": "To demonstrate that activity volume is not a measure of merit.", "used_for_assessment": False,
-     "sources": ["Microsoft Graph (mock, metadata only)"]},
+    {
+        "category": "assistance",
+        "label": "Productivity assistance",
+        "what": "Meeting transcripts you attend, summaries, follow-up tasks, drafts, reminders.",
+        "why": "To help you coordinate work.",
+        "used_for_assessment": False,
+        "sources": ["Microsoft Teams (mock)", "Outlook calendar (mock)", "Items you create"],
+    },
+    {
+        "category": "org_reporting",
+        "label": "Organisational reporting",
+        "what": "Project registers: milestones, risks, issues, dependencies, project status and health.",
+        "why": "Portfolio management and status reporting.",
+        "used_for_assessment": False,
+        "sources": ["PMO register (mock)", "Jira / Asana / monday.com (mock)"],
+    },
+    {
+        "category": "assessment_evidence",
+        "label": "Performance-assessment evidence",
+        "what": "Validated work records: milestones achieved, risks mitigated, blockers and dependencies resolved, "
+        "deliverable reviews, stakeholder survey results, project outcomes and operating context.",
+        "why": "Evidence-based, context-adjusted development conversations — only after governance approval.",
+        "used_for_assessment": True,
+        "sources": [
+            "Jira / Asana / monday.com (mock)",
+            "Microsoft Graph document approvals (mock)",
+            "PMO register (mock)",
+            "Stakeholder survey (mock)",
+        ],
+    },
+    {
+        "category": "diagnostic_activity",
+        "label": "Activity metadata (synthetic diagnostics only)",
+        "what": "Monthly counts of meetings, e-mails and hours in the synthetic dataset. No content.",
+        "why": "To demonstrate that activity volume is not a measure of merit.",
+        "used_for_assessment": False,
+        "sources": ["Microsoft Graph (mock, metadata only)"],
+    },
 ]
-NEVER_COLLECTED = ["E-mail or chat message content", "Keystrokes", "Screenshots or screen recording", "Browsing history",
-                   "Location", "Webcam or microphone outside meetings you choose to transcribe",
-                   "Protected characteristics in any individual estimate"]
+NEVER_COLLECTED = [
+    "E-mail or chat message content",
+    "Keystrokes",
+    "Screenshots or screen recording",
+    "Browsing history",
+    "Location",
+    "Webcam or microphone outside meetings you choose to transcribe",
+    "Protected characteristics in any individual estimate",
+]
 
 
 @router.get("/privacy/notice")
 def notice(p: Principal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
     t = db.get(Tenant, p.tenant_id)
-    return {"notice_text": t.settings.get("notice_text"), "assessment_purpose": t.settings.get("assessment_purpose"),
-            "assessment_enabled": t.assessment_enabled, "external_delivery_enabled": t.settings.get("external_delivery_enabled", False),
-            "never_collected": NEVER_COLLECTED, "covert_monitoring": False}
+    return {
+        "notice_text": t.settings.get("notice_text"),
+        "assessment_purpose": t.settings.get("assessment_purpose"),
+        "assessment_enabled": t.assessment_enabled,
+        "external_delivery_enabled": t.settings.get("external_delivery_enabled", False),
+        "never_collected": NEVER_COLLECTED,
+        "covert_monitoring": False,
+    }
 
 
 @router.get("/privacy/inventory")
 def inventory(p: Principal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
     t = db.get(Tenant, p.tenant_id)
     ret = t.settings.get("retention_days", {})
-    return {"categories": [dict(c, retention_days=ret.get(c["category"])) for c in DATA_INVENTORY],
-            "never_collected": NEVER_COLLECTED}
+    return {
+        "categories": [dict(c, retention_days=ret.get(c["category"])) for c in DATA_INVENTORY],
+        "never_collected": NEVER_COLLECTED,
+    }
 
 
 @router.post("/privacy/acknowledge")
@@ -89,8 +121,16 @@ class SettingsUpdate(BaseModel):
 @router.get("/admin/settings")
 def get_settings_(p: Principal = Depends(require_roles("admin", "hr_reviewer")), db: Session = Depends(get_db)) -> dict:
     t = db.get(Tenant, p.tenant_id)
-    return {"tenant": {"id": t.id, "name": t.name, "is_synthetic": t.is_synthetic, "assessment_enabled": t.assessment_enabled,
-                       "as_of": str(t.as_of)}, "settings": t.settings}
+    return {
+        "tenant": {
+            "id": t.id,
+            "name": t.name,
+            "is_synthetic": t.is_synthetic,
+            "assessment_enabled": t.assessment_enabled,
+            "as_of": str(t.as_of),
+        },
+        "settings": t.settings,
+    }
 
 
 @router.put("/admin/settings")
@@ -117,16 +157,31 @@ class GovernanceRequest(BaseModel):
 @router.get("/admin/governance")
 def governance(p: Principal = Depends(require_roles("admin", "hr_reviewer")), db: Session = Depends(get_db)) -> dict:
     t = db.get(Tenant, p.tenant_id)
-    rows = db.scalars(select(GovernanceApproval).where(GovernanceApproval.tenant_id == p.tenant_id)
-                      .order_by(GovernanceApproval.created_at.desc())).all()
-    return {"assessment_enabled": t.assessment_enabled, "approvals": [to_dict(r) for r in rows],
-            "rule": "Assessment features require approval by both an administrator and an HR reviewer."}
+    rows = db.scalars(
+        select(GovernanceApproval)
+        .where(GovernanceApproval.tenant_id == p.tenant_id)
+        .order_by(GovernanceApproval.created_at.desc())
+    ).all()
+    return {
+        "assessment_enabled": t.assessment_enabled,
+        "approvals": [to_dict(r) for r in rows],
+        "rule": "Assessment features require approval by both an administrator and an HR reviewer.",
+    }
 
 
 @router.post("/admin/governance/request")
-def governance_request(body: GovernanceRequest, p: Principal = Depends(require_roles("admin")), db: Session = Depends(get_db)) -> dict:
-    g = GovernanceApproval(tenant_id=p.tenant_id, purpose=body.purpose, scope={"features": body.features},
-                           requested_by=p.user_id, admin_approved_by=p.user_id, status="pending", created_at=audit.now())
+def governance_request(
+    body: GovernanceRequest, p: Principal = Depends(require_roles("admin")), db: Session = Depends(get_db)
+) -> dict:
+    g = GovernanceApproval(
+        tenant_id=p.tenant_id,
+        purpose=body.purpose,
+        scope={"features": body.features},
+        requested_by=p.user_id,
+        admin_approved_by=p.user_id,
+        status="pending",
+        created_at=audit.now(),
+    )
     db.add(g)
     db.flush()
     audit.record_principal(db, p, "governance_requested", "governance_approval", str(g.id), detail={"features": body.features})
@@ -134,8 +189,9 @@ def governance_request(body: GovernanceRequest, p: Principal = Depends(require_r
 
 
 @router.post("/admin/governance/{approval_id}/approve")
-def governance_approve(approval_id: int, p: Principal = Depends(require_roles("admin", "hr_reviewer")),
-                       db: Session = Depends(get_db)) -> dict:
+def governance_approve(
+    approval_id: int, p: Principal = Depends(require_roles("admin", "hr_reviewer")), db: Session = Depends(get_db)
+) -> dict:
     g = db.get(GovernanceApproval, approval_id)
     if g is None or g.tenant_id != p.tenant_id:
         raise HTTPException(404, "Approval request not found")
@@ -156,8 +212,9 @@ def governance_approve(approval_id: int, p: Principal = Depends(require_roles("a
 def governance_revoke(p: Principal = Depends(require_roles("admin", "hr_reviewer")), db: Session = Depends(get_db)) -> dict:
     t = db.get(Tenant, p.tenant_id)
     t.assessment_enabled = False
-    for g in db.scalars(select(GovernanceApproval).where(GovernanceApproval.tenant_id == p.tenant_id,
-                                                         GovernanceApproval.status == "approved")):
+    for g in db.scalars(
+        select(GovernanceApproval).where(GovernanceApproval.tenant_id == p.tenant_id, GovernanceApproval.status == "approved")
+    ):
         g.status, g.decided_at = "revoked", audit.now()
     audit.record_principal(db, p, "governance_revoked", "tenant", t.id)
     return {"assessment_enabled": False}
@@ -165,8 +222,13 @@ def governance_revoke(p: Principal = Depends(require_roles("admin", "hr_reviewer
 
 # ------------------------------------------------------------------ audit log
 @router.get("/admin/audit")
-def audit_log(action: str | None = None, limit: int = 100, offset: int = 0,
-              p: Principal = Depends(require_roles("admin", "hr_reviewer")), db: Session = Depends(get_db)) -> dict:
+def audit_log(
+    action: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+    p: Principal = Depends(require_roles("admin", "hr_reviewer")),
+    db: Session = Depends(get_db),
+) -> dict:
     stmt = select(AuditLog).where(AuditLog.tenant_id == p.tenant_id)
     if action:
         stmt = stmt.where(AuditLog.action == action)
@@ -181,8 +243,14 @@ def audit_log(action: str | None = None, limit: int = 100, offset: int = 0,
 def jobs(p: Principal = Depends(require_roles("admin")), db: Session = Depends(get_db)) -> dict:
     js = db.scalars(select(ScheduledJob).order_by(ScheduledJob.name)).all()
     runs = db.scalars(select(JobRun).order_by(JobRun.started_at.desc()).limit(30)).all()
-    return {"jobs": [to_dict(j) for j in js],
-            "runs": [{k: v for k, v in to_dict(r).items() if k != "detail"} | {"detail": {k: v for k, v in (r.detail or {}).items() if k != "trace"}} for r in runs]}
+    return {
+        "jobs": [to_dict(j) for j in js],
+        "runs": [
+            {k: v for k, v in to_dict(r).items() if k != "detail"}
+            | {"detail": {k: v for k, v in (r.detail or {}).items() if k != "trace"}}
+            for r in runs
+        ],
+    }
 
 
 def _run_in_background(name: str) -> None:
@@ -191,8 +259,9 @@ def _run_in_background(name: str) -> None:
 
 
 @router.post("/admin/jobs/{name}/run")
-def run_job_now(name: str, bg: BackgroundTasks, p: Principal = Depends(require_roles("admin", "hr_reviewer")),
-                db: Session = Depends(get_db)) -> dict:
+def run_job_now(
+    name: str, bg: BackgroundTasks, p: Principal = Depends(require_roles("admin", "hr_reviewer")), db: Session = Depends(get_db)
+) -> dict:
     if name not in REGISTRY:
         raise HTTPException(404, "Unknown job")
     if name == "retrain_models" and not db.get(Tenant, p.tenant_id).assessment_enabled:
@@ -207,8 +276,13 @@ def run_job_now(name: str, bg: BackgroundTasks, p: Principal = Depends(require_r
 # ------------------------------------------------------------------ connectors & users
 @router.get("/admin/connectors")
 def connectors(p: Principal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict[str, Any]]:
-    counts = dict(db.execute(select(EvidenceEventRow.source_system, func.count()).where(
-        EvidenceEventRow.tenant_id == p.tenant_id).group_by(EvidenceEventRow.source_system)).all())
+    counts = dict(
+        db.execute(
+            select(EvidenceEventRow.source_system, func.count())
+            .where(EvidenceEventRow.tenant_id == p.tenant_id)
+            .group_by(EvidenceEventRow.source_system)
+        ).all()
+    )
     out = []
     for name, c in build_connectors(MockDataSource()).items():
         d = c.describe()
@@ -228,12 +302,16 @@ def users(q: str = "", p: Principal = Depends(require_roles("admin")), db: Sessi
     if q:
         stmt = stmt.where(User.display_name.ilike(f"%{q}%"))
     rows = db.scalars(stmt.order_by(User.role.desc(), User.display_name).limit(50)).all()
-    return {"role_counts": counts, "users": [{"user_id": u.id, "display_name": u.display_name, "role": u.role,
-                                              "employee_id": u.employee_id} for u in rows]}
+    return {
+        "role_counts": counts,
+        "users": [{"user_id": u.id, "display_name": u.display_name, "role": u.role, "employee_id": u.employee_id} for u in rows],
+    }
 
 
 @router.put("/admin/users/{user_id}/role")
-def set_role(user_id: str, body: RoleUpdate, p: Principal = Depends(require_roles("admin")), db: Session = Depends(get_db)) -> dict:
+def set_role(
+    user_id: str, body: RoleUpdate, p: Principal = Depends(require_roles("admin")), db: Session = Depends(get_db)
+) -> dict:
     u = db.get(User, user_id)
     if u is None or u.tenant_id != p.tenant_id:
         raise HTTPException(404, "User not found")

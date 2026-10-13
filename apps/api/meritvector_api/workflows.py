@@ -50,14 +50,23 @@ def _reminders(db: Session) -> dict[str, Any]:
     created = 0
     for tenant in db.scalars(select(Tenant)):
         today = tenant_today(db, tenant.id)
-        tasks = db.scalars(select(CoordinatorTask).where(CoordinatorTask.tenant_id == tenant.id,
-                                                         CoordinatorTask.status != "done")).all()
+        tasks = db.scalars(
+            select(CoordinatorTask).where(CoordinatorTask.tenant_id == tenant.id, CoordinatorTask.status != "done")
+        ).all()
         db.execute(delete(Reminder).where(Reminder.tenant_id == tenant.id))
         by_id = {t.id: t for t in tasks}
         for r in reminders([{"id": t.id, "title": t.title, "due_date": t.due_date, "status": t.status} for t in tasks], today):
             t = by_id[r["task_id"]]
-            db.add(Reminder(tenant_id=tenant.id, employee_id=t.owner_employee_id, task_id=t.id, kind=r["kind"],
-                            message=r["message"], created_at=now()))
+            db.add(
+                Reminder(
+                    tenant_id=tenant.id,
+                    employee_id=t.owner_employee_id,
+                    task_id=t.id,
+                    kind=r["kind"],
+                    message=r["message"],
+                    created_at=now(),
+                )
+            )
             created += 1
     db.commit()
     return {"reminders": created}
@@ -89,17 +98,25 @@ def _retention(db: Session) -> dict[str, Any]:
             old = [m.id for m in db.scalars(select(Meeting).where(Meeting.tenant_id == tenant.id, Meeting.scheduled_at < cutoff))]
             stats["meeting_insights"] = db.execute(delete(MeetingInsight).where(MeetingInsight.meeting_id.in_(old))).rowcount
             stats["transcripts_cleared"] = db.execute(
-                update(Meeting).where(Meeting.id.in_(old), Meeting.transcript.is_not(None)).values(transcript=None)).rowcount
-            stats["outbox"] = db.execute(delete(OutboxMessage).where(OutboxMessage.tenant_id == tenant.id,
-                                                                     OutboxMessage.created_at < cutoff)).rowcount
+                update(Meeting).where(Meeting.id.in_(old), Meeting.transcript.is_not(None)).values(transcript=None)
+            ).rowcount
+            stats["outbox"] = db.execute(
+                delete(OutboxMessage).where(OutboxMessage.tenant_id == tenant.id, OutboxMessage.created_at < cutoff)
+            ).rowcount
         if "diagnostic_activity" in ret:
             cutoff = datetime.combine(today - timedelta(days=int(ret["diagnostic_activity"])), time.min)
-            stats["diagnostic_events"] = db.execute(delete(EvidenceEventRow).where(
-                EvidenceEventRow.tenant_id == tenant.id, EvidenceEventRow.data_category == "diagnostic_activity",
-                EvidenceEventRow.occurred_at < cutoff)).rowcount
+            stats["diagnostic_events"] = db.execute(
+                delete(EvidenceEventRow).where(
+                    EvidenceEventRow.tenant_id == tenant.id,
+                    EvidenceEventRow.data_category == "diagnostic_activity",
+                    EvidenceEventRow.occurred_at < cutoff,
+                )
+            ).rowcount
         if "audit_log" in ret:
             cutoff = now() - timedelta(days=int(ret["audit_log"]))
-            stats["audit_entries"] = db.execute(delete(AuditLog).where(AuditLog.tenant_id == tenant.id, AuditLog.at < cutoff)).rowcount
+            stats["audit_entries"] = db.execute(
+                delete(AuditLog).where(AuditLog.tenant_id == tenant.id, AuditLog.at < cutoff)
+            ).rowcount
         out[tenant.id] = stats
     db.commit()
     return out
@@ -118,8 +135,15 @@ def _retrain(db: Session) -> dict[str, Any]:
 def register_default_jobs(db: Session) -> None:
     for name, (desc, interval, _) in REGISTRY.items():
         if db.get(ScheduledJob, name) is None:
-            db.add(ScheduledJob(name=name, description=desc, interval_minutes=interval, enabled=True,
-                                next_run_at=now() + timedelta(minutes=interval)))
+            db.add(
+                ScheduledJob(
+                    name=name,
+                    description=desc,
+                    interval_minutes=interval,
+                    enabled=True,
+                    next_run_at=now() + timedelta(minutes=interval),
+                )
+            )
     db.commit()
 
 

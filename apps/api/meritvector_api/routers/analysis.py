@@ -34,17 +34,27 @@ def context(p: Principal = Depends(require_assessment_enabled), db: Session = De
     _roles(p, "manager", "hr_reviewer")
     run = _run(db, p)
     emps = {e.id: e for e in visible_employees(db, p)}
-    outs = db.scalars(select(EmployeeRunOutput).where(EmployeeRunOutput.run_id == run.id,
-                                                      EmployeeRunOutput.employee_id.in_(list(emps)))).all()
+    outs = db.scalars(
+        select(EmployeeRunOutput).where(EmployeeRunOutput.run_id == run.id, EmployeeRunOutput.employee_id.in_(list(emps)))
+    ).all()
     points = []
     for o in outs:
         s = o.payload.get("estimates", {}).get("schedule_variance_pct")
         if not s:
             continue
-        points.append({"employee_id": o.employee_id, "job_family": emps[o.employee_id].job_family,
-                       "raw_estimate": s.get("raw_estimate"), "adjusted_estimate": s.get("adjusted_estimate"),
-                       "ci_low": s.get("ci_low"), "ci_high": s.get("ci_high"), "n": s.get("n"),
-                       "context_expected": s.get("context_expected"), "conclusion": s.get("conclusion")})
+        points.append(
+            {
+                "employee_id": o.employee_id,
+                "job_family": emps[o.employee_id].job_family,
+                "raw_estimate": s.get("raw_estimate"),
+                "adjusted_estimate": s.get("adjusted_estimate"),
+                "ci_low": s.get("ci_low"),
+                "ci_high": s.get("ci_high"),
+                "n": s.get("n"),
+                "context_expected": s.get("context_expected"),
+                "conclusion": s.get("conclusion"),
+            }
+        )
     points.sort(key=lambda x: x["employee_id"])  # stable, non-ranked order
     cm = run.metrics.get("context_models", {})
     return {
@@ -55,8 +65,8 @@ def context(p: Principal = Depends(require_assessment_enabled), db: Session = De
         "sensitivity": run.metrics.get("validation", {}).get("sensitivity"),
         "label_audit": run.metrics.get("label_audit"),
         "explanation": "Raw estimate: the person's mean schedule variance relative to the organisation. Adjusted estimate: "
-                       "mixed-model employee effect after accounting for complexity, dependencies, resourcing, scope "
-                       "changes, team size, environment, maturity, job family and time. Positive = less slippage.",
+        "mixed-model employee effect after accounting for complexity, dependencies, resourcing, scope "
+        "changes, team size, environment, maturity, job family and time. Positive = less slippage.",
     }
 
 
@@ -82,9 +92,15 @@ def validation(p: Principal = Depends(require_assessment_enabled), db: Session =
     run = _run(db, p)
     m = run.metrics
     return {
-        "run_id": run.id, "created_at": run.created_at, "data_hash": run.data_hash, "config": run.config,
-        "validation": m.get("validation"), "counts": m.get("counts"), "conclusion_counts": m.get("conclusion_counts"),
-        "trend_counts": m.get("trend_counts"), "label_audit": m.get("label_audit"),
+        "run_id": run.id,
+        "created_at": run.created_at,
+        "data_hash": run.data_hash,
+        "config": run.config,
+        "validation": m.get("validation"),
+        "counts": m.get("counts"),
+        "conclusion_counts": m.get("conclusion_counts"),
+        "trend_counts": m.get("trend_counts"),
+        "label_audit": m.get("label_audit"),
         "variance_components": {k: v.get("variance_components") for k, v in m.get("context_models", {}).items()},
         "diagnostics": {k: v.get("diagnostics") for k, v in m.get("context_models", {}).items()},
         "fairness": run.fairness if p.role in ("hr_reviewer", "admin") else "restricted to HR reviewers and administrators",
@@ -97,9 +113,18 @@ def validation(p: Principal = Depends(require_assessment_enabled), db: Session =
 def runs(p: Principal = Depends(require_assessment_enabled), db: Session = Depends(get_db)) -> list[dict]:
     _roles(p, "manager", "hr_reviewer", "admin")
     rows = db.scalars(select(ModelRun).where(ModelRun.tenant_id == p.tenant_id).order_by(ModelRun.created_at.desc())).all()
-    return [{"id": r.id, "created_at": r.created_at, "status": r.status, "data_hash": r.data_hash[:16],
-             "artifact_path": r.artifact_path, "conclusion_counts": r.metrics.get("conclusion_counts"),
-             "best_model": r.metrics.get("validation", {}).get("out_of_time", {}).get("best_by_mae")} for r in rows]
+    return [
+        {
+            "id": r.id,
+            "created_at": r.created_at,
+            "status": r.status,
+            "data_hash": r.data_hash[:16],
+            "artifact_path": r.artifact_path,
+            "conclusion_counts": r.metrics.get("conclusion_counts"),
+            "best_model": r.metrics.get("validation", {}).get("out_of_time", {}).get("best_by_mae"),
+        }
+        for r in rows
+    ]
 
 
 def _train_bg() -> None:

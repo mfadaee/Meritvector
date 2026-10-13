@@ -47,7 +47,10 @@ extend-exclude = ["apps/web", "experiments/notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S", "BLE"]
-ignore = ["S101", "S311", "B008", "UP038"]
+ignore = ["S101", "S311", "B008"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["meritvector_shared", "meritvector_analytics", "meritvector_coordinator", "meritvector_connectors", "meritvector_api"]

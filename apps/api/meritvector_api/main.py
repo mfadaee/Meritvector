@@ -24,10 +24,15 @@ def create_app() -> FastAPI:
         title="MeritVector API",
         version=__version__,
         description="Workforce intelligence MVP. All bundled data is synthetic. Decision support only — "
-                    "no automated employment decisions, no rankings.",
+        "no automated employment decisions, no rankings.",
     )
-    app.add_middleware(CORSMiddleware, allow_origins=list(s.cors_origins), allow_credentials=False,
-                       allow_methods=["GET", "POST", "PUT", "PATCH"], allow_headers=["Authorization", "Content-Type"])
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(s.cors_origins),
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PUT", "PATCH"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
     for r in (auth, workspace, coordinator, portfolio, evidence, employees, analysis, admin):
         app.include_router(r.router)
 
@@ -43,8 +48,12 @@ def create_app() -> FastAPI:
 
     @app.get("/health", tags=["meta"])
     def health() -> dict:
-        return {"status": "ok", "version": __version__, "synthetic_data_only": True,
-                "llm_provider": os.getenv("MV_LLM_PROVIDER", "deterministic")}
+        return {
+            "status": "ok",
+            "version": __version__,
+            "synthetic_data_only": True,
+            "llm_provider": os.getenv("MV_LLM_PROVIDER", "deterministic"),
+        }
 
     return app
 

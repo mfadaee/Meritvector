@@ -25,6 +25,7 @@ from meritvector_api.models import (
     Project,
     Risk,
     Tenant,
+    User,
 )
 from meritvector_coordinator import extract
 
@@ -48,31 +49,55 @@ def process_meeting(db: Session, meeting: Meeting, *, actor_user_id: str, create
         first = e.display_name.split()[0]
         # Only map unambiguous first names within the meeting.
         first_names[first] = "" if first in first_names else e.id
-    known = {k: v for k, v in first_names.items() if v}
+    # Respect each attendee's privacy preference: opted-out people get no extracted follow-ups.
+    opted_out = {
+        u.employee_id
+        for u in db.scalars(select(User).where(User.employee_id.in_(meeting.attendees)))
+        if u.preferences.get("transcript_processing") is False
+    }
+    known = {k: v for k, v in first_names.items() if v and v not in opted_out}
     ins = extract(meeting.transcript, meeting.scheduled_at.date(), known_people=known)
     existing = db.get(MeetingInsight, meeting.id)
     if existing is not None:
         db.delete(existing)
         db.flush()
     row = MeetingInsight(
-        meeting_id=meeting.id, tenant_id=meeting.tenant_id, summary=ins.summary,
-        actions=[a.__dict__ for a in ins.actions], decisions=ins.decisions, risks=ins.risks,
-        dependencies=ins.dependencies, generator=ins.generator, disclosure=ins.disclosure, created_at=now(),
+        meeting_id=meeting.id,
+        tenant_id=meeting.tenant_id,
+        summary=ins.summary,
+        actions=[a.__dict__ for a in ins.actions],
+        decisions=ins.decisions,
+        risks=ins.risks,
+        dependencies=ins.dependencies,
+        generator=ins.generator,
+        disclosure=ins.disclosure,
+        created_at=now(),
     )
     db.add(row)
     if create_tasks:
-        already = {(t.owner_employee_id, t.title) for t in db.scalars(
-            select(CoordinatorTask).where(CoordinatorTask.source_meeting_id == meeting.id))}
+        already = {
+            (t.owner_employee_id, t.title)
+            for t in db.scalars(select(CoordinatorTask).where(CoordinatorTask.source_meeting_id == meeting.id))
+        }
         for a in ins.actions:
             if a.owner not in known.values():
                 continue  # owner not resolvable to an attendee — left in the insight for manual triage
             if (a.owner, a.description) in already:
                 continue
-            db.add(CoordinatorTask(
-                tenant_id=meeting.tenant_id, owner_employee_id=a.owner, project_id=meeting.project_id, title=a.description,
-                due_date=date.fromisoformat(a.due_date) if a.due_date else None, status="open",
-                source_meeting_id=meeting.id, source_line=a.source_line, created_by=actor_user_id, created_at=now(),
-            ))
+            db.add(
+                CoordinatorTask(
+                    tenant_id=meeting.tenant_id,
+                    owner_employee_id=a.owner,
+                    project_id=meeting.project_id,
+                    title=a.description,
+                    due_date=date.fromisoformat(a.due_date) if a.due_date else None,
+                    status="open",
+                    source_meeting_id=meeting.id,
+                    source_line=a.source_line,
+                    created_by=actor_user_id,
+                    created_at=now(),
+                )
+            )
     db.commit()
     return row
 

@@ -39,11 +39,15 @@ def _rule_frames(fs: FeatureSet) -> dict[str, pd.DataFrame]:
         return ev[ev["category"] == c]
 
     rules: dict[str, Callable[[], pd.DataFrame]] = {
-        "milestone_on_time": lambda: ev[ev["event_id"].isin(m.loc[m["schedule_variance_pct"] <= ON_TIME_THRESHOLD_PCT, "event_id"])],
+        "milestone_on_time": lambda: ev[
+            ev["event_id"].isin(m.loc[m["schedule_variance_pct"] <= ON_TIME_THRESHOLD_PCT, "event_id"])
+        ],
         "benefits_case_met": lambda: cat("project_outcome")[_p(cat("project_outcome"), "benefits_case_met") == True],  # noqa: E712
         "first_pass_approval_complex": lambda: (
-            lambda d: d[(_p(d, "approved_first_pass") == True)  # noqa: E712
-                        & (d["project_id"].map(ctx["technical_complexity"]) >= 4)]
+            lambda d: d[
+                (_p(d, "approved_first_pass") == True)  # noqa: E712
+                & (d["project_id"].map(ctx["technical_complexity"]) >= 4)
+            ]
         )(cat("document_reviewed")),
         "blocker_resolved_fast": lambda: (lambda d: d[_p(d, "days_to_resolve").astype(float) <= 7])(cat("blocker_resolved")),
         "dependency_resolved": lambda: cat("dependency_resolved"),
@@ -52,8 +56,9 @@ def _rule_frames(fs: FeatureSet) -> dict[str, pd.DataFrame]:
         "proactive_risk": lambda: (lambda d: d[_p(d, "proactive") == True])(cat("risk_identified")),  # noqa: E712
         "risk_mitigated": lambda: cat("risk_mitigated"),
         "scope_change_governed": lambda: cat("scope_change_approved"),
-        "programme_milestone": lambda: ev[(ev["category"] == "milestone_achieved")
-                                          & (ev["project_id"].map(ctx["programme"]) == True)],  # noqa: E712
+        "programme_milestone": lambda: ev[
+            (ev["category"] == "milestone_achieved") & (ev["project_id"].map(ctx["programme"]) == True)  # noqa: E712
+        ],
     }
     return {k: f()[cols] for k, f in rules.items()}
 

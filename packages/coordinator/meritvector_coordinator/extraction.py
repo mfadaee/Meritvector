@@ -14,7 +14,9 @@ from datetime import date, timedelta
 from meritvector_coordinator.llm import get_provider
 
 _WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-_DATE = r"(\d{4}-\d{2}-\d{2}|tomorrow|today|end of (?:the )?week|next week|(?:next )?(?:monday|tuesday|wednesday|thursday|friday))"
+_DATE = (
+    r"(\d{4}-\d{2}-\d{2}|tomorrow|today|end of (?:the )?week|next week|(?:next )?(?:monday|tuesday|wednesday|thursday|friday))"
+)
 
 _ACTION_PATTERNS = [
     # "ACTION: Avery to update the plan by 2026-10-20."
@@ -22,7 +24,9 @@ _ACTION_PATTERNS = [
     # "Avery: I'll update the plan by Friday."
     re.compile(rf"^(?P<owner>[A-Z][\w'-]+):\s*I(?:'ll| will)\s+(?P<task>.+?)(?:\s+(?:by|before)\s+{_DATE})?[.!]?$", re.I),
     # "Lead: Avery, can you update the plan before 2026-10-20? Avery: Yes, will do."
-    re.compile(rf"^[A-Z][\w'-]+:\s*(?P<owner>[A-Z][\w'-]+),\s*(?:can|could) you\s+(?P<task>.+?)(?:\s+(?:by|before)\s+{_DATE})?\?", re.I),
+    re.compile(
+        rf"^[A-Z][\w'-]+:\s*(?P<owner>[A-Z][\w'-]+),\s*(?:can|could) you\s+(?P<task>.+?)(?:\s+(?:by|before)\s+{_DATE})?\?", re.I
+    ),
 ]
 _DECISION_PATTERNS = [
     re.compile(r"(?:^|:\s*)decision:\s*(?P<text>.+?)[.!]?$", re.I),
@@ -100,7 +104,9 @@ def _split_lines(transcript: str) -> list[str]:
 def extract(transcript: str, meeting_date: date, known_people: dict[str, str] | None = None) -> MeetingInsights:
     """Extract structured insights. ``known_people`` maps first names to employee IDs."""
     lines = _split_lines(transcript)
-    participants = sorted({ln.split(":", 1)[0].strip() for ln in lines if ":" in ln and not ln.lower().startswith(("action:", "decision:"))})
+    participants = sorted(
+        {ln.split(":", 1)[0].strip() for ln in lines if ":" in ln and not ln.lower().startswith(("action:", "decision:"))}
+    )
     actions: list[ActionItem] = []
     decisions, risks, deps = [], [], []
     seen_actions = set()
@@ -113,9 +119,14 @@ def extract(transcript: str, meeting_date: date, known_people: dict[str, str] | 
                 if key not in seen_actions:
                     seen_actions.add(key)
                     groups = [g for g in mt.groups()[2:] if g] if len(mt.groups()) > 2 else []
-                    actions.append(ActionItem(owner=mt.group("owner"), description=task[0].upper() + task[1:],
-                                              due_date=resolve_date(groups[-1] if groups else None, meeting_date),
-                                              source_line=ln))
+                    actions.append(
+                        ActionItem(
+                            owner=mt.group("owner"),
+                            description=task[0].upper() + task[1:],
+                            due_date=resolve_date(groups[-1] if groups else None, meeting_date),
+                            source_line=ln,
+                        )
+                    )
                 break
         for pat in _DECISION_PATTERNS:
             mt = pat.search(ln)
@@ -139,13 +150,29 @@ def extract(transcript: str, meeting_date: date, known_people: dict[str, str] | 
             a.owner = known_people.get(a.owner, a.owner)
     summary_text = _summarise(lines, actions, decisions, risks, deps)
     gen = get_provider().generate(transcript, purpose="meeting_summary", fallback_text=summary_text)
-    return MeetingInsights(summary=gen.text, actions=actions, decisions=decisions, risks=risks, dependencies=deps,
-                           participants=participants, generator=gen.provider, disclosure=gen.disclosure)
+    return MeetingInsights(
+        summary=gen.text,
+        actions=actions,
+        decisions=decisions,
+        risks=risks,
+        dependencies=deps,
+        participants=participants,
+        generator=gen.provider,
+        disclosure=gen.disclosure,
+    )
 
 
 def _summarise(lines, actions, decisions, risks, deps) -> str:
-    status = next((ln.split(":", 1)[1].strip() for ln in lines if re.search(r"on track|behind schedule|delayed|slipp", ln, re.I)
-                   and ":" in ln and not ln.lower().startswith("action")), None)
+    status = next(
+        (
+            ln.split(":", 1)[1].strip()
+            for ln in lines
+            if re.search(r"on track|behind schedule|delayed|slipp", ln, re.I)
+            and ":" in ln
+            and not ln.lower().startswith("action")
+        ),
+        None,
+    )
     parts = []
     if status:
         parts.append(f"Status: {status}")
@@ -156,5 +183,5 @@ def _summarise(lines, actions, decisions, risks, deps) -> str:
     if risks:
         parts.append(f"{len(risks)} risk(s) raised: " + "; ".join(r["text"].rstrip(".") for r in risks) + ".")
     if deps:
-        parts.append(f"{len(deps)} external dependency(ies) outstanding (" + ", ".join(sorted({d['team'] for d in deps})) + ").")
+        parts.append(f"{len(deps)} external dependency(ies) outstanding (" + ", ".join(sorted({d["team"] for d in deps})) + ").")
     return " ".join(parts) or "No structured items detected."

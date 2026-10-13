@@ -64,7 +64,9 @@ class Connector(ABC):
     def fetch_meetings(self) -> list[dict[str, Any]]:
         return []
 
-    def deliver(self, message: OutboundMessage, *, policy: DeliveryPolicy, authorisation: Authorisation | None) -> DeliveryReceipt:
+    def deliver(
+        self, message: OutboundMessage, *, policy: DeliveryPolicy, authorisation: Authorisation | None
+    ) -> DeliveryReceipt:
         if not self.supports_delivery:
             raise DeliveryNotAuthorised(f"{self.name} does not support outbound delivery")
         if not policy.external_delivery_enabled:

@@ -31,15 +31,18 @@ from meritvector_analytics.features import CONTEXT_CATEGORICAL, CONTEXT_NUMERIC
 
 OUTCOMES: dict[str, dict[str, Any]] = {
     # sign: +1 when larger raw values are better
-    "schedule_variance_pct": {"label": "Schedule variance (% of milestone interval)", "sign": -1, "unit": "pp",
-                              "max_ci_width": 22.0},
+    "schedule_variance_pct": {
+        "label": "Schedule variance (% of milestone interval)",
+        "sign": -1,
+        "unit": "pp",
+        "max_ci_width": 22.0,
+    },
     "quality_score": {"label": "Deliverable review score (1–5)", "sign": 1, "unit": "points", "max_ci_width": 1.1},
 }
 MIN_MILESTONES = 6
 
 
-def context_formula(outcome: str, numeric: list[str] | None = None, categorical: list[str] | None = None,
-                    extra: str = "") -> str:
+def context_formula(outcome: str, numeric: list[str] | None = None, categorical: list[str] | None = None, extra: str = "") -> str:
     numeric = CONTEXT_NUMERIC if numeric is None else numeric
     categorical = CONTEXT_CATEGORICAL if categorical is None else categorical
     terms = list(numeric) + [f"C({c})" for c in categorical] + ["month_index"]
@@ -70,8 +73,13 @@ def fit_context_ols(m: pd.DataFrame, outcome: str, formula: str | None = None):
 def coefficient_table(res) -> pd.DataFrame:
     ci = res.conf_int()
     return pd.DataFrame(
-        {"term": res.params.index, "estimate": res.params.values, "ci_low": ci[0].values, "ci_high": ci[1].values,
-         "p_value": res.pvalues.values}
+        {
+            "term": res.params.index,
+            "estimate": res.params.values,
+            "ci_low": ci[0].values,
+            "ci_high": ci[1].values,
+            "p_value": res.pvalues.values,
+        }
     )
 
 
@@ -105,13 +113,18 @@ def fit_mixed(m: pd.DataFrame, outcome: str, formula: str | None = None, project
     d = m.dropna(subset=[outcome]).reset_index(drop=True)
     f = formula or context_formula(outcome)
     caught: list[str] = []
-    for use_vc in ([True, False] if project_vc else [False]):
+    for use_vc in [True, False] if project_vc else [False]:
         for method in ("lbfgs", "bfgs", "powell"):
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
                 try:
-                    model = smf.mixedlm(f, d, groups=d["employee_id"], re_formula="1",
-                                        vc_formula={"project": "0 + C(project_id)"} if use_vc else None)
+                    model = smf.mixedlm(
+                        f,
+                        d,
+                        groups=d["employee_id"],
+                        re_formula="1",
+                        vc_formula={"project": "0 + C(project_id)"} if use_vc else None,
+                    )
                     res = model.fit(reml=True, method=[method])
                 except (np.linalg.LinAlgError, ValueError) as exc:
                     caught.append(f"{method} failed (project_vc={use_vc}): {exc}")
@@ -134,8 +147,16 @@ def mixed_estimates(res, d: pd.DataFrame, outcome: str) -> pd.DataFrame:
         var = float(np.asarray(cov)[0, 0])
         se = float(np.sqrt(max(var, 0.0)))
         est = sign * val
-        rows.append({"employee_id": emp, "adjusted_estimate": est, "adjusted_se": se,
-                     "ci_low": est - 1.96 * se, "ci_high": est + 1.96 * se, "n": int(n.get(emp, 0))})
+        rows.append(
+            {
+                "employee_id": emp,
+                "adjusted_estimate": est,
+                "adjusted_se": se,
+                "ci_low": est - 1.96 * se,
+                "ci_high": est + 1.96 * se,
+                "n": int(n.get(emp, 0)),
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -146,8 +167,11 @@ def classify(est: pd.DataFrame, outcome: str, min_n: int = MIN_MILESTONES) -> pd
     label = np.where(
         (est["n"] < min_n) | (width > max_w),
         "insufficient_evidence",
-        np.where(est["ci_low"] > 0, "above_context_expectation",
-                 np.where(est["ci_high"] < 0, "below_context_expectation", "within_expected_range")),
+        np.where(
+            est["ci_low"] > 0,
+            "above_context_expectation",
+            np.where(est["ci_high"] < 0, "below_context_expectation", "within_expected_range"),
+        ),
     )
     return pd.Series(label, index=est.index)
 
@@ -192,10 +216,14 @@ def _assumption_notes(resid: np.ndarray, bp_p: float) -> list[str]:
 
     notes = []
     if abs(stats.kurtosis(resid)) > 1:
-        notes.append("Residuals are heavy-tailed; intervals assume approximate normality and may be optimistic. "
-                     "Bootstrap and robust-regression sensitivity checks are reported alongside.")
+        notes.append(
+            "Residuals are heavy-tailed; intervals assume approximate normality and may be optimistic. "
+            "Bootstrap and robust-regression sensitivity checks are reported alongside."
+        )
     if bp_p < 0.05:
-        notes.append("Residual variance changes with context (Breusch–Pagan p<0.05); cluster-robust standard "
-                     "errors are used for context coefficients.")
+        notes.append(
+            "Residual variance changes with context (Breusch–Pagan p<0.05); cluster-robust standard "
+            "errors are used for context coefficients."
+        )
     notes.append("Assignment to projects is not random: adjusted estimates remove *measured* context only.")
     return notes

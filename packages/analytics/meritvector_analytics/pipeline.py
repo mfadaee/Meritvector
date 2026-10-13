@@ -128,11 +128,19 @@ def run_pipeline(
             "analytics_version": __version__,
             "data_hash": fingerprint,
             "as_of": as_of,
-            "counts": {"milestones": len(m), "employees_with_evidence": int(m["employee_id"].nunique()),
-                       "projects": int(m["project_id"].nunique()), "eligible_events": int(len(fs.events))},
+            "counts": {
+                "milestones": len(m),
+                "employees_with_evidence": int(m["employee_id"].nunique()),
+                "projects": int(m["project_id"].nunique()),
+                "eligible_events": int(len(fs.events)),
+                "right_censored_milestones_excluded": fs.censored_excluded,
+            },
             "context_models": {
-                o: {"coefficients": c.coefficients.to_dict("records"), "variance_components": c.variance_components,
-                    "diagnostics": c.diagnostics}
+                o: {
+                    "coefficients": c.coefficients.to_dict("records"),
+                    "variance_components": c.variance_components,
+                    "diagnostics": c.diagnostics,
+                }
                 for o, c in ctx.items()
             },
             "conclusion_counts": conclusions,
@@ -142,11 +150,23 @@ def run_pipeline(
         }
     )
     result = PipelineResult(
-        version=version, created_at=created.isoformat(), data_hash=fingerprint,
+        version=version,
+        created_at=created.isoformat(),
+        data_hash=fingerprint,
         config={"n_boot": n_boot, "framework": fw.get("version"), "as_of": as_of},
-        features=fs, employee_metrics=desc, portfolio_trend=portfolio_trend(m), risk_trends=risk_trends(fs.events),
-        context=ctx, estimates=estimates, trend_summary=tr, trend_series=qser, competencies=comp,
-        validation=validation, experiment=_clean(experiment), label_audit=audit, fairness=_clean(fair) if fair else None,
+        features=fs,
+        employee_metrics=desc,
+        portfolio_trend=portfolio_trend(m),
+        risk_trends=risk_trends(fs.events),
+        context=ctx,
+        estimates=estimates,
+        trend_summary=tr,
+        trend_series=qser,
+        competencies=comp,
+        validation=validation,
+        experiment=_clean(experiment),
+        label_audit=audit,
+        fairness=_clean(fair) if fair else None,
         metrics=metrics,
     )
     result.model_card = render_model_card(result)
@@ -168,7 +188,12 @@ def save_artifacts(result: PipelineResult, root: str | Path) -> Path:
     if result.fairness:
         (out / "fairness_audit.json").write_text(json.dumps(result.fairness, indent=2, default=str))
     (out / "model_card.md").write_text(result.model_card)
-    manifest = {"version": result.version, "created_at": result.created_at, "data_hash": result.data_hash,
-                "config": result.config, "files": sorted(p.name for p in out.iterdir())}
+    manifest = {
+        "version": result.version,
+        "created_at": result.created_at,
+        "data_hash": result.data_hash,
+        "config": result.config,
+        "files": sorted(p.name for p in out.iterdir()),
+    }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2))
     return out

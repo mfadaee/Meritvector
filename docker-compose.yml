@@ -1,0 +1,50 @@
+# Local MeritVector stack — all data is synthetic.
+#   docker compose up --build        then open http://localhost:3000
+# First start generates the synthetic organisation and trains the models (~1–2 minutes).
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-meritvector}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-meritvector-local-only}
+      POSTGRES_DB: ${POSTGRES_DB:-meritvector}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-meritvector} -d ${POSTGRES_DB:-meritvector}"]
+      interval: 3s
+      retries: 30
+
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    image: meritvector-api:0.1.0
+    environment: &api-env
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-meritvector}:${POSTGRES_PASSWORD:-meritvector-local-only}@db:5432/${POSTGRES_DB:-meritvector}
+      MV_SECRET_KEY: ${MV_SECRET_KEY:?Set MV_SECRET_KEY in .env (see .env.example)}
+      MV_DEMO_AUTH: ${MV_DEMO_AUTH:-true}
+      MV_CORS_ORIGINS: ${MV_CORS_ORIGINS:-http://localhost:3000}
+      MV_LLM_PROVIDER: ${MV_LLM_PROVIDER:-deterministic}
+    volumes: [artifacts:/app/artifacts, synthetic:/app/data/synthetic]
+    depends_on: { db: { condition: service_healthy } }
+    ports: ["8000:8000"]
+
+  worker:
+    image: meritvector-api:0.1.0
+    environment: *api-env
+    command: ["python", "-m", "meritvector_api.cli", "worker", "--interval", "60"]
+    volumes: [artifacts:/app/artifacts, synthetic:/app/data/synthetic]
+    depends_on: { api: { condition: service_healthy } }
+    healthcheck: { disable: true }
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args: { NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-http://localhost:8000}" }
+    image: meritvector-web:0.1.0
+    depends_on: { api: { condition: service_healthy } }
+    ports: ["3000:3000"]
+
+volumes:
+  pgdata:
+  artifacts:
+  synthetic:

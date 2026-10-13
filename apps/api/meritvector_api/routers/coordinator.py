@@ -27,7 +27,14 @@ from meritvector_api.models import (
 from meritvector_api.routers.workspace import _me, _meeting_dict, my_meetings, my_projects
 from meritvector_api.security import Principal, current_principal
 from meritvector_api.services import health_map, process_meeting, tenant_today, to_dict
-from meritvector_connectors import Authorisation, DeliveryNotAuthorised, DeliveryPolicy, MockDataSource, OutboundMessage, build_connectors
+from meritvector_connectors import (
+    Authorisation,
+    DeliveryNotAuthorised,
+    DeliveryPolicy,
+    MockDataSource,
+    OutboundMessage,
+    build_connectors,
+)
 from meritvector_coordinator import management_summary, project_documentation, unresolved_dependencies, weekly_status_report
 
 router = APIRouter(tags=["coordinator"])
@@ -35,8 +42,9 @@ router = APIRouter(tags=["coordinator"])
 
 # ------------------------------------------------------------------ meetings
 @router.get("/meetings")
-def meetings(scope: Literal["past", "upcoming", "all"] = "all", p: Principal = Depends(current_principal),
-             db: Session = Depends(get_db)) -> list[dict]:
+def meetings(
+    scope: Literal["past", "upcoming", "all"] = "all", p: Principal = Depends(current_principal), db: Session = Depends(get_db)
+) -> list[dict]:
     _me(p)
     now_ = datetime.combine(tenant_today(db, p.tenant_id), time.min)
     ms = my_meetings(db, p)
@@ -97,9 +105,18 @@ def process_transcript(body: TranscriptIn, p: Principal = Depends(current_princi
             raise HTTPException(404, "Project not found")
     when = body.meeting_date or tenant_today(db, p.tenant_id)
     mid = f"ADHOC-{me}-{audit.now():%Y%m%d%H%M%S%f}"
-    m = Meeting(id=mid, tenant_id=p.tenant_id, project_id=body.project_id, title=body.title,
-                scheduled_at=datetime.combine(when, time(9, 0)), attendees=[me], organiser_id=me, transcript=body.transcript,
-                source="user_upload", data_category="assistance")
+    m = Meeting(
+        id=mid,
+        tenant_id=p.tenant_id,
+        project_id=body.project_id,
+        title=body.title,
+        scheduled_at=datetime.combine(when, time(9, 0)),
+        attendees=[me],
+        organiser_id=me,
+        transcript=body.transcript,
+        source="user_upload",
+        data_category="assistance",
+    )
     db.add(m)
     db.commit()
     process_meeting(db, m, actor_user_id=p.user_id)
@@ -123,17 +140,27 @@ class TaskPatch(BaseModel):
 def tasks(p: Principal = Depends(current_principal), db: Session = Depends(get_db)) -> list[dict]:
     me = _me(p)
     today_ = tenant_today(db, p.tenant_id)
-    rows = db.scalars(select(CoordinatorTask).where(CoordinatorTask.tenant_id == p.tenant_id,
-                                                    CoordinatorTask.owner_employee_id == me)
-                      .order_by(CoordinatorTask.status, CoordinatorTask.due_date)).all()
+    rows = db.scalars(
+        select(CoordinatorTask)
+        .where(CoordinatorTask.tenant_id == p.tenant_id, CoordinatorTask.owner_employee_id == me)
+        .order_by(CoordinatorTask.status, CoordinatorTask.due_date)
+    ).all()
     return [to_dict(t) | {"overdue": bool(t.status != "done" and t.due_date and t.due_date < today_)} for t in rows]
 
 
 @router.post("/coordinator/tasks")
 def add_task(body: TaskIn, p: Principal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
     me = _me(p)
-    t = CoordinatorTask(tenant_id=p.tenant_id, owner_employee_id=me, project_id=body.project_id, title=body.title,
-                        due_date=body.due_date, status="open", created_by=p.user_id, created_at=audit.now())
+    t = CoordinatorTask(
+        tenant_id=p.tenant_id,
+        owner_employee_id=me,
+        project_id=body.project_id,
+        title=body.title,
+        due_date=body.due_date,
+        status="open",
+        created_by=p.user_id,
+        created_at=audit.now(),
+    )
     db.add(t)
     db.commit()
     return to_dict(t)
@@ -168,17 +195,32 @@ def weekly(project_id: str, p: Principal = Depends(current_principal), db: Sessi
     ms = [to_dict(m) for m in db.scalars(select(Milestone).where(Milestone.project_id == pr.id).order_by(Milestone.planned_date))]
     rs = [to_dict(r) for r in db.scalars(select(Risk).where(Risk.project_id == pr.id))]
     ds = [to_dict(d) for d in db.scalars(select(Dependency).where(Dependency.project_id == pr.id))]
-    acts = [to_dict(t) for t in db.scalars(select(CoordinatorTask).where(CoordinatorTask.project_id == pr.id,
-                                                                         CoordinatorTask.status != "done"))]
-    names = {e.id: e.display_name for e in db.scalars(select(Employee).where(Employee.id.in_([a["owner_employee_id"] for a in acts])))}
+    acts = [
+        to_dict(t)
+        for t in db.scalars(select(CoordinatorTask).where(CoordinatorTask.project_id == pr.id, CoordinatorTask.status != "done"))
+    ]
+    names = {
+        e.id: e.display_name for e in db.scalars(select(Employee).where(Employee.id.in_([a["owner_employee_id"] for a in acts])))
+    }
     for a in acts:
         a["owner_name"] = names.get(a["owner_employee_id"])
     meetings_ = db.scalars(select(Meeting).where(Meeting.project_id == pr.id)).all()
-    decisions = [d for i in db.scalars(select(MeetingInsight).where(MeetingInsight.meeting_id.in_([m.id for m in meetings_])))
-                 for d in i.decisions]
+    decisions = [
+        d
+        for i in db.scalars(select(MeetingInsight).where(MeetingInsight.meeting_id.in_([m.id for m in meetings_])))
+        for d in i.decisions
+    ]
     health = health_map(db, p.tenant_id, [pr.id]).get(pr.id, {}).get("health")
-    return weekly_status_report(project=to_dict(pr), milestones=ms, risks=rs, dependencies=ds, actions=acts,
-                                decisions=decisions, health=health, today=today_)
+    return weekly_status_report(
+        project=to_dict(pr),
+        milestones=ms,
+        risks=rs,
+        dependencies=ds,
+        actions=acts,
+        decisions=decisions,
+        health=health,
+        today=today_,
+    )
 
 
 @router.get("/coordinator/reports/documentation/{project_id}")
@@ -187,10 +229,18 @@ def documentation(project_id: str, p: Principal = Depends(current_principal), db
     lead = db.get(Employee, pr.lead_employee_id)
     md = project_documentation(
         project=to_dict(pr) | {"lead_name": lead.display_name if lead else pr.lead_employee_id},
-        milestones=[to_dict(m) for m in db.scalars(select(Milestone).where(Milestone.project_id == pr.id).order_by(Milestone.planned_date))],
+        milestones=[
+            to_dict(m)
+            for m in db.scalars(select(Milestone).where(Milestone.project_id == pr.id).order_by(Milestone.planned_date))
+        ],
         risks=[to_dict(r) for r in db.scalars(select(Risk).where(Risk.project_id == pr.id))],
-        dependencies=[to_dict(d) for d in db.scalars(select(Dependency).where(Dependency.project_id == pr.id))])
-    return {"markdown": md, "generator": "deterministic", "disclosure": "Generated by deterministic rules (no language model was used)."}
+        dependencies=[to_dict(d) for d in db.scalars(select(Dependency).where(Dependency.project_id == pr.id))],
+    )
+    return {
+        "markdown": md,
+        "generator": "deterministic",
+        "disclosure": "Generated by deterministic rules (no language model was used).",
+    }
 
 
 @router.get("/coordinator/management-summary")
@@ -198,13 +248,19 @@ def mgmt_summary(p: Principal = Depends(current_principal), db: Session = Depend
     _me(p)
     if p.role == "manager":
         team = [e.id for e in db.scalars(select(Employee).where(Employee.manager_id == p.employee_id))] + [p.employee_id]
-        ps = db.scalars(select(Project).where(Project.tenant_id == p.tenant_id, Project.lead_employee_id.in_(team),
-                                              Project.status == "active")).all()
+        ps = db.scalars(
+            select(Project).where(
+                Project.tenant_id == p.tenant_id, Project.lead_employee_id.in_(team), Project.status == "active"
+            )
+        ).all()
     else:
         ps = my_projects(db, p)
     health = {k: v["health"] for k, v in health_map(db, p.tenant_id, [x.id for x in ps]).items()}
-    return {"summary": management_summary(projects=[to_dict(x) | {"project_id": x.id} for x in ps], health=health),
-            "generator": "deterministic", "projects": len(ps)}
+    return {
+        "summary": management_summary(projects=[to_dict(x) | {"project_id": x.id} for x in ps], health=health),
+        "generator": "deterministic",
+        "projects": len(ps),
+    }
 
 
 @router.get("/coordinator/dependencies")
@@ -230,15 +286,29 @@ class SendIn(BaseModel):
 @router.get("/coordinator/outbox")
 def outbox(p: Principal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
     t = db.get(Tenant, p.tenant_id)
-    rows = db.scalars(select(OutboxMessage).where(OutboxMessage.tenant_id == p.tenant_id, OutboxMessage.author_user_id == p.user_id)
-                      .order_by(OutboxMessage.created_at.desc())).all()
-    return {"external_delivery_enabled": t.settings.get("external_delivery_enabled", False), "messages": [to_dict(r) for r in rows]}
+    rows = db.scalars(
+        select(OutboxMessage)
+        .where(OutboxMessage.tenant_id == p.tenant_id, OutboxMessage.author_user_id == p.user_id)
+        .order_by(OutboxMessage.created_at.desc())
+    ).all()
+    return {
+        "external_delivery_enabled": t.settings.get("external_delivery_enabled", False),
+        "messages": [to_dict(r) for r in rows],
+    }
 
 
 @router.post("/coordinator/outbox")
 def draft(body: OutboxIn, p: Principal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
-    m = OutboxMessage(tenant_id=p.tenant_id, author_user_id=p.user_id, channel=body.channel, recipient=body.recipient,
-                      subject=body.subject, body=body.body, status="draft", created_at=audit.now())
+    m = OutboxMessage(
+        tenant_id=p.tenant_id,
+        author_user_id=p.user_id,
+        channel=body.channel,
+        recipient=body.recipient,
+        subject=body.subject,
+        body=body.body,
+        status="draft",
+        created_at=audit.now(),
+    )
     db.add(m)
     db.commit()
     return to_dict(m)
@@ -254,7 +324,9 @@ def send(message_id: int, body: SendIn, p: Principal = Depends(current_principal
     auth = Authorisation(message_id=str(m.id), authorised_by=p.user_id, confirmed=body.confirm) if body.confirm else None
     conn = build_connectors(MockDataSource())[m.channel]
     try:
-        receipt = conn.deliver(OutboundMessage(str(m.id), m.channel, m.recipient, m.subject, m.body), policy=policy, authorisation=auth)
+        receipt = conn.deliver(
+            OutboundMessage(str(m.id), m.channel, m.recipient, m.subject, m.body), policy=policy, authorisation=auth
+        )
     except DeliveryNotAuthorised as exc:
         m.status, m.status_detail = "blocked", str(exc)
         audit.record_principal(db, p, "delivery_blocked", "outbox_message", str(m.id), detail={"reason": str(exc)})

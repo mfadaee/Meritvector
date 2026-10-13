@@ -1,0 +1,11 @@
+**/node_modules
+**/.next
+**/__pycache__
+**/*.egg-info
+.git
+artifacts
+data/synthetic/*
+!data/synthetic/README.md
+.env
+experiments
+tests

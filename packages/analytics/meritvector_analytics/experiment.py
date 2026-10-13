@@ -29,14 +29,21 @@ from meritvector_analytics.features import CONTEXT_NUMERIC, design_matrix
 MIN_MS = 8
 
 
+class InsufficientExperimentData(ValueError):
+    pass
+
+
 def select_pair(m: pd.DataFrame, ctx: ContextResult) -> tuple[str, str]:
     stats_ = m.groupby("employee_id").agg(n=("on_time", "size"), on_time=("on_time", "mean"))
     stats_ = stats_.join(ctx.residual_estimates.set_index("employee_id")["context_expected"])
     elig = stats_[stats_["n"] >= MIN_MS]
     a_pool = elig[elig["on_time"] >= elig["on_time"].quantile(0.75)]
     b_pool = elig[elig["on_time"] <= elig["on_time"].median()]
+    b_pool = b_pool.drop(index=a_pool.index, errors="ignore")
+    if a_pool.empty or b_pool.empty:
+        raise InsufficientExperimentData(f"need people with >= {MIN_MS} achieved milestones in both pools")
     a = a_pool["context_expected"].idxmin()
-    b = b_pool.drop(index=a, errors="ignore")["context_expected"].idxmax()
+    b = b_pool["context_expected"].idxmax()
     return str(a), str(b)
 
 
@@ -62,13 +69,25 @@ def _pair_difference_bootstrap(m: pd.DataFrame, a: str, b: str, n_boot: int = 40
         r = y[idx] - X[idx] @ beta
         ra, rb = r[emp[idx] == a].mean(), r[emp[idx] == b].mean()
         diffs.append(-(rb - ra))  # positive => B better than A relative to context
-    return {"difference": float(np.mean(diffs)), "ci_low": float(np.percentile(diffs, 2.5)),
-            "ci_high": float(np.percentile(diffs, 97.5)), "n_boot": n_boot}
+    return {
+        "difference": float(np.mean(diffs)),
+        "ci_low": float(np.percentile(diffs, 2.5)),
+        "ci_high": float(np.percentile(diffs, 97.5)),
+        "n_boot": n_boot,
+    }
 
 
-def run_experiment(m: pd.DataFrame, ctx: ContextResult, sensitivity_tables: dict[str, pd.DataFrame],
-                   employees: pd.DataFrame) -> dict[str, Any]:
-    a, b = select_pair(m, ctx)
+def run_experiment(
+    m: pd.DataFrame, ctx: ContextResult, sensitivity_tables: dict[str, pd.DataFrame], employees: pd.DataFrame
+) -> dict[str, Any]:
+    try:
+        a, b = select_pair(m, ctx)
+    except InsufficientExperimentData as exc:
+        return {
+            "status": "insufficient_data",
+            "verdict": f"Experiment not run: {exc}. No comparison is reported.",
+            "employees": {},
+        }
     sub = m[m["employee_id"].isin([a, b])]
     label = {a: "A", b: "B"}
 
@@ -88,18 +107,27 @@ def run_experiment(m: pd.DataFrame, ctx: ContextResult, sensitivity_tables: dict
         conditions[label[e]]["regulated_share"] = float((s["environment"] == "regulated").mean())
         conditions[label[e]]["greenfield_share"] = float((s["maturity"] == "greenfield").mean())
         conditions[label[e]]["context_expected_variance_pct"] = float(
-            ctx.residual_estimates.set_index("employee_id").loc[e, "context_expected"])
+            ctx.residual_estimates.set_index("employee_id").loc[e, "context_expected"]
+        )
 
     mixed = ctx.mixed_estimates.set_index("employee_id")
-    adjusted = {label[e]: {k: float(mixed.loc[e, k]) for k in ("adjusted_estimate", "ci_low", "ci_high")} | {
-        "conclusion": str(mixed.loc[e, "conclusion"])} for e in (a, b)}
+    adjusted = {
+        label[e]: {k: float(mixed.loc[e, k]) for k in ("adjusted_estimate", "ci_low", "ci_high")}
+        | {"conclusion": str(mixed.loc[e, "conclusion"])}
+        for e in (a, b)
+    }
 
     sens_rows = []
     for name, t in {"base_mixed_model": ctx.mixed_estimates.set_index("employee_id"), **sensitivity_tables}.items():
         if a in t.index and b in t.index:
-            sens_rows.append({"specification": name, "A": float(t.loc[a, "adjusted_estimate"]),
-                              "B": float(t.loc[b, "adjusted_estimate"]),
-                              "B_minus_A": float(t.loc[b, "adjusted_estimate"] - t.loc[a, "adjusted_estimate"])})
+            sens_rows.append(
+                {
+                    "specification": name,
+                    "A": float(t.loc[a, "adjusted_estimate"]),
+                    "B": float(t.loc[b, "adjusted_estimate"]),
+                    "B_minus_A": float(t.loc[b, "adjusted_estimate"] - t.loc[a, "adjusted_estimate"]),
+                }
+            )
     boot = _pair_difference_bootstrap(m, a, b)
 
     # Overlap / common support: are their operating conditions even comparable?
@@ -126,8 +154,10 @@ def run_experiment(m: pd.DataFrame, ctx: ContextResult, sensitivity_tables: dict
         reasons.append("The bootstrap interval for the adjusted B−A difference includes zero.")
     if consistent_sign and boot_sig and support_ok:
         direction = "B" if boot["difference"] > 0 else "A"
-        verdict = (f"Evidence supports a context-adjusted difference favouring Employee {direction}. "
-                   "This is an adjusted association, not proof of individual causal impact.")
+        verdict = (
+            f"Evidence supports a context-adjusted difference favouring Employee {direction}. "
+            "This is an adjusted association, not proof of individual causal impact."
+        )
         status = "supported_difference"
     else:
         verdict = "Inconclusive: the evidence does not support a confident comparison. " + " ".join(reasons)
@@ -139,8 +169,8 @@ def run_experiment(m: pd.DataFrame, ctx: ContextResult, sensitivity_tables: dict
     unadj_diff = next((r["B_minus_A"] for r in sens_rows if r["specification"] == "no_context_adjustment"), float("nan"))
     adjustment_summary = (
         f"Without context adjustment the model puts Employee A ahead by {abs(unadj_diff):.1f} pp of schedule variance "
-        if unadj_diff < 0 else
-        f"Without context adjustment the model puts Employee B ahead by {abs(unadj_diff):.1f} pp of schedule variance "
+        if unadj_diff < 0
+        else f"Without context adjustment the model puts Employee B ahead by {abs(unadj_diff):.1f} pp of schedule variance "
     ) + (
         f"(raw on-time rates {raw['A']['on_time_rate']:.0%} vs {raw['B']['on_time_rate']:.0%}). After adjusting for "
         f"operating conditions the B−A difference is {base_diff:+.1f} pp (bootstrap 95% CI "

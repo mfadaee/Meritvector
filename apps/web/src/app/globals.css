@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens. Chart series and status colours follow the validated reference palette
+   (dataviz skill): categorical slots 1–3 validate all-pairs in both modes. */
+:root {
+  color-scheme: light;
+  --bg: 246 246 244;
+  --surface: 252 252 251;
+  --raised: 255 255 255;
+  --line: 226 225 220;
+  --ink: 11 11 11;
+  --muted: 82 81 78;
+  --faint: 128 127 122;
+  --accent: 42 120 214;
+  --good: 12 163 12;
+  --warn: 250 178 25;
+  --serious: 236 131 90;
+  --critical: 208 59 59;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --chart-grid: #e7e6e2;
+  --chart-axis: #52514e;
+  --ci-band: rgba(42, 120, 214, 0.18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: 17 17 16;
+    --surface: 26 26 25;
+    --raised: 34 34 32;
+    --line: 56 56 53;
+    --ink: 240 239 236;
+    --muted: 195 194 183;
+    --faint: 140 139 132;
+    --accent: 57 135 229;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --chart-grid: #2e2e2b;
+    --chart-axis: #c3c2b7;
+    --ci-band: rgba(57, 135, 229, 0.25);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: 17 17 16;
+  --surface: 26 26 25;
+  --raised: 34 34 32;
+  --line: 56 56 53;
+  --ink: 240 239 236;
+  --muted: 195 194 183;
+  --faint: 140 139 132;
+  --accent: 57 135 229;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --chart-grid: #2e2e2b;
+  --chart-axis: #c3c2b7;
+  --ci-band: rgba(57, 135, 229, 0.25);
+}
+
+html, body { background: rgb(var(--bg)); color: rgb(var(--ink)); }
+body { font-feature-settings: "tnum" 1; }
+.prose-md h1 { font-size: 1.15rem; font-weight: 600; margin: 0.25rem 0 0.5rem; }
+.prose-md h2 { font-size: 0.95rem; font-weight: 600; margin: 1rem 0 0.35rem; }
+.prose-md ul { list-style: disc; padding-left: 1.2rem; }
+.prose-md table { border-collapse: collapse; font-size: 0.8rem; margin: 0.4rem 0; }
+.prose-md td, .prose-md th { border: 1px solid rgb(var(--line)); padding: 0.2rem 0.45rem; }
+.prose-md p { margin: 0.25rem 0; }

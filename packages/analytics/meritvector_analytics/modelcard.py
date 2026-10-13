@@ -38,6 +38,9 @@ def render_model_card(r: PipelineResult) -> str:
         f"- Achieved milestones: {r.metrics['counts']['milestones']} across {r.metrics['counts']['projects']} projects; "
         f"{r.metrics['counts']['employees_with_evidence']} employees with evidence.",
         f"- Data fingerprint: `{r.data_hash[:16]}`; as of {r.config['as_of']}.",
+        f"- Right-censoring guard: {r.metrics['counts'].get('right_censored_milestones_excluded', 0)} achieved milestones "
+        "planned "
+        "within 90 days of the as-of date are excluded, because only early finishers among them are observable yet.",
         "- Excluded: assistance content, diagnostic activity (meetings/e-mail/hours), disputed or retracted records, "
         "protected attributes, historical ratings and promotions.",
         "",
@@ -68,28 +71,35 @@ def render_model_card(r: PipelineResult) -> str:
     lines += ["", "## Sensitivity to modelling assumptions"]
     for name, s in v["sensitivity"].items():
         changed = s["share_conclusions_changed"]
-        lines.append(f"- {name}: Spearman with base {_f(s['spearman_with_base'], 3)}"
-                     + (f"; conclusions changed for {_f(changed * 100, 1)}% of employees" if changed is not None else ""))
+        lines.append(
+            f"- {name}: Spearman with base {_f(s['spearman_with_base'], 3)}"
+            + (f"; conclusions changed for {_f(changed * 100, 1)}% of employees" if changed is not None else "")
+        )
     lines += ["", "## Assumption diagnostics"]
     for note in sched.diagnostics["assumption_notes"]:
         lines.append(f"- {note}")
     if sched.diagnostics["fit_warnings"]:
-        lines.append(f"- Optimiser warnings recorded during fitting: {len(sched.diagnostics['fit_warnings'])} "
-                     "(see metrics.json). Estimates are reported because the model converged.")
+        lines.append(
+            f"- Optimiser warnings recorded during fitting: {len(sched.diagnostics['fit_warnings'])} "
+            "(see metrics.json). Estimates are reported because the model converged."
+        )
     lines += [
         "",
         "## Abstention",
         "An employee estimate is reported as *insufficient evidence* when fewer than 6 milestones are available or "
         "the interval is wider than the configured maximum. Conclusion counts: "
-        + ", ".join(f"{k}: {v_}" for k, v_ in r.metrics["conclusion_counts"].items()) + ".",
+        + ", ".join(f"{k}: {v_}" for k, v_ in r.metrics["conclusion_counts"].items())
+        + ".",
         "",
         "## Historical labels",
     ]
     if r.label_audit:
         la = r.label_audit
-        lines.append(f"- Manager ratings vs raw outcomes ρ={_f(la['rating_vs_raw_outcome_spearman'], 2)}, vs adjusted "
-                     f"evidence ρ={_f(la['rating_vs_adjusted_estimate_spearman'], 2)}, vs meeting volume "
-                     f"ρ={_f(la['rating_vs_meeting_volume_spearman'], 2)}. Ratings are treated as biased labels.")
+        lines.append(
+            f"- Manager ratings vs raw outcomes ρ={_f(la['rating_vs_raw_outcome_spearman'], 2)}, vs adjusted "
+            f"evidence ρ={_f(la['rating_vs_adjusted_estimate_spearman'], 2)}, vs meeting volume "
+            f"ρ={_f(la['rating_vs_meeting_volume_spearman'], 2)}. Ratings are treated as biased labels."
+        )
     if r.fairness:
         lines += ["", "## Fairness audit (aggregated)", f"- {r.fairness.get('finding')}"]
     lines += [
@@ -98,6 +108,7 @@ def render_model_card(r: PipelineResult) -> str:
         "- Synthetic data: the data-generating process is known and simpler than reality.",
         "- Unmeasured context (team skill, sponsor quality, luck) is absorbed into individual estimates.",
         "- Non-random assignment: people who are trusted with harder work may differ in unmeasured ways.",
+        "- Milestones still overdue at the as-of date are not yet outcomes and are not modelled (a survival model is planned).",
         "- Milestone schedule variance is one narrow facet of contribution; much valuable work leaves no record.",
         "- Estimates are adjusted associations, not causal effects of individuals.",
         "",

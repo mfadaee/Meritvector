@@ -50,14 +50,26 @@ def recovery_report(result, ground_truth: pd.DataFrame, manager_ratings: pd.Data
         "n_evaluated": int(len(d)),
         "by_archetype": (
             d.groupby("archetype")
-            .agg(n=("truth", "size"), mean_raw=("raw_estimate", "mean"), mean_adjusted=("adjusted_estimate", "mean"),
-                 mean_true_effect=("true_effect", "mean"))
-            .round(2).reset_index().to_dict("records")
+            .agg(
+                n=("truth", "size"),
+                mean_raw=("raw_estimate", "mean"),
+                mean_adjusted=("adjusted_estimate", "mean"),
+                mean_true_effect=("true_effect", "mean"),
+            )
+            .round(2)
+            .reset_index()
+            .to_dict("records")
         ),
         "note": "Evaluation only — hidden synthetic parameters never enter training features.",
     }
     exp = result.experiment
+    if exp.get("status") == "insufficient_data":
+        return report
     a, b = exp["employees"]["A"], exp["employees"]["B"]
-    report["experiment_truth"] = {"A_true_effect": float(d.loc[a, "true_effect"]), "B_true_effect": float(d.loc[b, "true_effect"]),
-                                  "A_archetype": str(d.loc[a, "archetype"]), "B_archetype": str(d.loc[b, "archetype"])}
+    report["experiment_truth"] = {
+        "A_true_effect": float(d.loc[a, "true_effect"]),
+        "B_true_effect": float(d.loc[b, "true_effect"]),
+        "A_archetype": str(d.loc[a, "archetype"]),
+        "B_archetype": str(d.loc[b, "archetype"]),
+    }
     return report

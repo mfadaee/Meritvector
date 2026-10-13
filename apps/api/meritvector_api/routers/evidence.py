@@ -19,21 +19,33 @@ router = APIRouter(prefix="/evidence", tags=["evidence"])
 
 
 @router.get("/me")
-def my_evidence(category: str | None = None, data_category: str | None = None, limit: int = 50, offset: int = 0,
-                p: Principal = Depends(current_principal), db: Session = Depends(get_db)) -> dict:
+def my_evidence(
+    category: str | None = None,
+    data_category: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+    p: Principal = Depends(current_principal),
+    db: Session = Depends(get_db),
+) -> dict:
     """Every record held about the caller — available regardless of whether assessment is enabled."""
     if not p.employee_id:
         raise HTTPException(403, "This account has no employee record")
-    stmt = select(EvidenceEventRow).where(EvidenceEventRow.tenant_id == p.tenant_id, EvidenceEventRow.employee_id == p.employee_id)
+    stmt = select(EvidenceEventRow).where(
+        EvidenceEventRow.tenant_id == p.tenant_id, EvidenceEventRow.employee_id == p.employee_id
+    )
     if category:
         stmt = stmt.where(EvidenceEventRow.category == category)
     if data_category:
         stmt = stmt.where(EvidenceEventRow.data_category == data_category)
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
     rows = db.scalars(stmt.order_by(EvidenceEventRow.occurred_at.desc()).offset(offset).limit(min(limit, 200))).all()
-    cats = dict(db.execute(select(EvidenceEventRow.category, func.count()).where(
-        EvidenceEventRow.tenant_id == p.tenant_id, EvidenceEventRow.employee_id == p.employee_id)
-        .group_by(EvidenceEventRow.category)).all())
+    cats = dict(
+        db.execute(
+            select(EvidenceEventRow.category, func.count())
+            .where(EvidenceEventRow.tenant_id == p.tenant_id, EvidenceEventRow.employee_id == p.employee_id)
+            .group_by(EvidenceEventRow.category)
+        ).all()
+    )
     return {"total": total, "items": [to_dict(r) for r in rows], "category_counts": cats}
 
 
@@ -50,9 +62,16 @@ def challenge(event_id: str, body: ChallengeIn, p: Principal = Depends(current_p
     pending = db.scalar(select(func.count()).where(EvidenceChallenge.event_id == event_id, EvidenceChallenge.status == "pending"))
     if pending:
         raise HTTPException(409, "This record already has a pending challenge")
-    c = EvidenceChallenge(tenant_id=p.tenant_id, event_id=event_id, employee_id=p.employee_id, reason=body.reason,
-                          proposed_correction=body.proposed_correction, previous_status=ev.validation_status,
-                          status="pending", created_at=audit.now())
+    c = EvidenceChallenge(
+        tenant_id=p.tenant_id,
+        event_id=event_id,
+        employee_id=p.employee_id,
+        reason=body.reason,
+        proposed_correction=body.proposed_correction,
+        previous_status=ev.validation_status,
+        status="pending",
+        created_at=audit.now(),
+    )
     # Challenged records are excluded from analysis until a reviewer resolves the challenge.
     ev.validation_status = "disputed"
     db.add(c)
@@ -77,10 +96,24 @@ def challenges(status: str | None = None, p: Principal = Depends(current_princip
         stmt = stmt.where(EvidenceChallenge.status == status)
     rows = db.scalars(stmt.order_by(EvidenceChallenge.created_at.desc())).all()
     names = {e.id: e.display_name for e in db.scalars(select(Employee).where(Employee.id.in_({r.employee_id for r in rows})))}
-    evs = {e.event_id: e for e in db.scalars(select(EvidenceEventRow).where(EvidenceEventRow.event_id.in_([r.event_id for r in rows])))}
-    return [to_dict(r) | {"employee_name": names.get(r.employee_id),
-                          "event": {k: v for k, v in to_dict(evs[r.event_id]).items() if k in ("category", "occurred_at", "evidence_ref", "payload", "source_system")}
-                          if r.event_id in evs else None} for r in rows]
+    evs = {
+        e.event_id: e
+        for e in db.scalars(select(EvidenceEventRow).where(EvidenceEventRow.event_id.in_([r.event_id for r in rows])))
+    }
+    return [
+        to_dict(r)
+        | {
+            "employee_name": names.get(r.employee_id),
+            "event": {
+                k: v
+                for k, v in to_dict(evs[r.event_id]).items()
+                if k in ("category", "occurred_at", "evidence_ref", "payload", "source_system")
+            }
+            if r.event_id in evs
+            else None,
+        }
+        for r in rows
+    ]
 
 
 class ResolveIn(BaseModel):
@@ -99,8 +132,11 @@ def resolve(challenge_id: int, body: ResolveIn, p: Principal = Depends(current_p
     if c.status != "pending":
         raise HTTPException(409, f"Challenge already {c.status}")
     ev = db.get(EvidenceEventRow, c.event_id)
-    ev.validation_status = {"upheld_retract": "retracted", "upheld_corrected": "corrected", "rejected": c.previous_status}[body.decision]
+    ev.validation_status = {"upheld_retract": "retracted", "upheld_corrected": "corrected", "rejected": c.previous_status}[
+        body.decision
+    ]
     c.status, c.resolution_note, c.resolved_by, c.resolved_at = body.decision, body.note, p.user_id, audit.now()
-    audit.record_principal(db, p, "challenge_resolved", "evidence_challenge", str(c.id),
-                           detail={"decision": body.decision, "event_id": c.event_id})
+    audit.record_principal(
+        db, p, "challenge_resolved", "evidence_challenge", str(c.id), detail={"decision": body.decision, "event_id": c.event_id}
+    )
     return to_dict(c)

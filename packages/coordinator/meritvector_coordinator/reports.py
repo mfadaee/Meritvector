@@ -23,20 +23,39 @@ def _d(x: Any) -> date | None:
     return date.fromisoformat(str(x)[:10])
 
 
-def daily_briefing(*, person: str, today: date, meetings: list[dict], tasks: list[dict], milestones: list[dict],
-                   risks: list[dict], decisions: list[dict]) -> dict[str, Any]:
+def daily_briefing(
+    *,
+    person: str,
+    today: date,
+    meetings: list[dict],
+    tasks: list[dict],
+    milestones: list[dict],
+    risks: list[dict],
+    decisions: list[dict],
+) -> dict[str, Any]:
     todays = [m for m in meetings if _d(m["scheduled_at"]) == today]
-    upcoming = [m for m in meetings if _d(m["scheduled_at"]) and today < _d(m["scheduled_at"]) <= date.fromordinal(today.toordinal() + 7)]
+    upcoming = [
+        m for m in meetings if _d(m["scheduled_at"]) and today < _d(m["scheduled_at"]) <= date.fromordinal(today.toordinal() + 7)
+    ]
     open_tasks = [t for t in tasks if t.get("status") != "done"]
     overdue = [t for t in open_tasks if _d(t.get("due_date")) and _d(t["due_date"]) < today]
-    due_soon = [t for t in open_tasks if _d(t.get("due_date")) and today <= _d(t["due_date"]) <= date.fromordinal(today.toordinal() + 3)]
-    ms_soon = [m for m in milestones if m.get("status") != "achieved" and _d(m.get("planned_date"))
-               and _d(m["planned_date"]) <= date.fromordinal(today.toordinal() + 14)]
+    due_soon = [
+        t for t in open_tasks if _d(t.get("due_date")) and today <= _d(t["due_date"]) <= date.fromordinal(today.toordinal() + 3)
+    ]
+    ms_soon = [
+        m
+        for m in milestones
+        if m.get("status") != "achieved"
+        and _d(m.get("planned_date"))
+        and _d(m["planned_date"]) <= date.fromordinal(today.toordinal() + 14)
+    ]
     high_risks = [r for r in risks if r.get("severity") == "high" and r.get("status") in ("open", "issue")]
     lines = [f"Good morning {person.split()[0]}. Briefing for {today:%A %d %B %Y}."]
     lines.append(f"Meetings today: {len(todays)}; in the next 7 days: {len(upcoming)}.")
     if overdue:
-        lines.append(f"{len(overdue)} action(s) are overdue — oldest: “{sorted(overdue, key=lambda t: t['due_date'])[0]['title']}”.")
+        lines.append(
+            f"{len(overdue)} action(s) are overdue — oldest: “{sorted(overdue, key=lambda t: t['due_date'])[0]['title']}”."
+        )
     if due_soon:
         lines.append(f"{len(due_soon)} action(s) due within 3 days.")
     if ms_soon:
@@ -47,14 +66,34 @@ def daily_briefing(*, person: str, today: date, meetings: list[dict], tasks: lis
         lines.append(f"Recent decision: {decisions[0]['text']}.")
     text = " ".join(lines)
     gen = get_provider().generate(text, purpose="daily_briefing", fallback_text=text)
-    return {"text": gen.text, "generator": gen.provider, "disclosure": gen.disclosure,
-            "counts": {"meetings_today": len(todays), "meetings_next_7_days": len(upcoming), "overdue_actions": len(overdue),
-                       "actions_due_soon": len(due_soon), "milestones_due_14d": len(ms_soon), "high_risks": len(high_risks)},
-            "overdue": overdue, "due_soon": due_soon}
+    return {
+        "text": gen.text,
+        "generator": gen.provider,
+        "disclosure": gen.disclosure,
+        "counts": {
+            "meetings_today": len(todays),
+            "meetings_next_7_days": len(upcoming),
+            "overdue_actions": len(overdue),
+            "actions_due_soon": len(due_soon),
+            "milestones_due_14d": len(ms_soon),
+            "high_risks": len(high_risks),
+        },
+        "overdue": overdue,
+        "due_soon": due_soon,
+    }
 
 
-def weekly_status_report(*, project: dict, milestones: list[dict], risks: list[dict], dependencies: list[dict],
-                         actions: list[dict], decisions: list[dict], health: str | None, today: date) -> dict[str, Any]:
+def weekly_status_report(
+    *,
+    project: dict,
+    milestones: list[dict],
+    risks: list[dict],
+    dependencies: list[dict],
+    actions: list[dict],
+    decisions: list[dict],
+    health: str | None,
+    today: date,
+) -> dict[str, Any]:
     done = [m for m in milestones if m.get("status") == "achieved"]
     nxt = sorted([m for m in milestones if m.get("status") != "achieved"], key=lambda m: str(m["planned_date"]))
     open_r = [r for r in risks if r.get("status") in ("open", "issue")]
@@ -75,7 +114,10 @@ def weekly_status_report(*, project: dict, milestones: list[dict], risks: list[d
     md += ["", "## Decisions this period"]
     md += [f"- {d['text']}" for d in decisions[:6]] or ["- None recorded."]
     md += ["", "## Open actions"]
-    md += [f"- {a['title']} — {a.get('owner_name', a.get('owner_employee_id', ''))}, due {a.get('due_date') or 'n/a'}" for a in actions[:10]] or ["- None."]
+    md += [
+        f"- {a['title']} — {a.get('owner_name', a.get('owner_employee_id', ''))}, due {a.get('due_date') or 'n/a'}"
+        for a in actions[:10]
+    ] or ["- None."]
     text = "\n".join(md)
     gen = get_provider().generate(text, purpose="weekly_status", fallback_text=text)
     return {"markdown": gen.text, "generator": gen.provider, "disclosure": gen.disclosure}
@@ -108,9 +150,14 @@ def project_documentation(*, project: dict, milestones: list[dict], risks: list[
         "| Milestone | Planned | Actual | Status |",
         "|---|---|---|---|",
     ]
-    md += [f"| {m['name']} | {str(m['planned_date'])[:10]} | {str(m.get('actual_date') or '')[:10]} | {m['status']} |" for m in milestones]
+    md += [
+        f"| {m['name']} | {str(m['planned_date'])[:10]} | {str(m.get('actual_date') or '')[:10]} | {m['status']} |"
+        for m in milestones
+    ]
     md += ["", "## Risks (R) and issues (I)"]
-    md += [f"- {'I' if r['kind'] == 'issue' else 'R'} · {r['title']} · {r['severity']} · {r['status']}" for r in risks] or ["- None."]
+    md += [f"- {'I' if r['kind'] == 'issue' else 'R'} · {r['title']} · {r['severity']} · {r['status']}" for r in risks] or [
+        "- None."
+    ]
     md += ["", "## Dependencies (D)"]
     md += [f"- {d['depends_on']}: {d['description']} · {d['status']}" for d in dependencies] or ["- None."]
     return "\n".join(md)

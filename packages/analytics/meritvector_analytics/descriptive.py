@@ -36,8 +36,16 @@ def employee_metrics(fs: FeatureSet) -> pd.DataFrame:
         }
     )
     cat = ev.groupby(["employee_id", "category"]).size().unstack(fill_value=0)
-    for c in ("risk_identified", "risk_mitigated", "issue_raised", "blocker_resolved", "dependency_resolved",
-              "task_completed", "stakeholder_feedback", "scope_change_approved"):
+    for c in (
+        "risk_identified",
+        "risk_mitigated",
+        "issue_raised",
+        "blocker_resolved",
+        "dependency_resolved",
+        "task_completed",
+        "stakeholder_feedback",
+        "scope_change_approved",
+    ):
         out[c] = cat[c] if c in cat.columns else 0
     out = out.fillna({c: 0 for c in cat.columns if c in out.columns})
     out["risk_mitigation_rate"] = safe_rate(out["risk_mitigated"], out["risk_identified"])
@@ -47,7 +55,9 @@ def employee_metrics(fs: FeatureSet) -> pd.DataFrame:
     out["proactive_risk_rate"] = proactive
 
     br = ev[ev["category"] == "blocker_resolved"]
-    out["blocker_median_days"] = br.assign(d=_payload_col(br, "days_to_resolve").astype(float)).groupby("employee_id")["d"].median()
+    out["blocker_median_days"] = (
+        br.assign(d=_payload_col(br, "days_to_resolve").astype(float)).groupby("employee_id")["d"].median()
+    )
     dr = ev[ev["category"] == "dependency_resolved"]
     out["dependency_median_days"] = dr.assign(d=_payload_col(dr, "days_open").astype(float)).groupby("employee_id")["d"].median()
     sf = ev[ev["category"] == "stakeholder_feedback"]
@@ -75,13 +85,12 @@ def portfolio_trend(m: pd.DataFrame) -> pd.DataFrame:
 
 
 def complexity_distribution(projects: pd.DataFrame) -> pd.DataFrame:
-    return (
-        projects.groupby(["technical_complexity", "business_unit"]).size().rename("projects").reset_index()
-    )
+    return projects.groupby(["technical_complexity", "business_unit"]).size().rename("projects").reset_index()
 
 
-def project_health(projects: pd.DataFrame, milestones: pd.DataFrame, risks: pd.DataFrame,
-                   dependencies: pd.DataFrame, as_of) -> pd.DataFrame:
+def project_health(
+    projects: pd.DataFrame, milestones: pd.DataFrame, risks: pd.DataFrame, dependencies: pd.DataFrame, as_of
+) -> pd.DataFrame:
     """Rule-based RAG health from organisational reporting registers.
 
     Rules (documented in METRICS_FRAMEWORK.md):
