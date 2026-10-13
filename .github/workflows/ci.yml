@@ -74,6 +74,7 @@ jobs:
       - name: Smoke test
         run: |
           curl -fs http://localhost:8000/auth/demo-personas | python3 -c "import json,sys; p=json.load(sys.stdin); assert len(p) >= 4, p"
+          for i in $(seq 1 30); do curl -fs -o /dev/null http://localhost:3000/login && break; sleep 2; done
           curl -fs -o /dev/null http://localhost:3000/login
       - name: Logs on failure
         if: failure()
