@@ -44,9 +44,7 @@ def _rule_frames(fs: FeatureSet) -> dict[str, pd.DataFrame]:
         return ev[ev["category"] == c]
 
     rules: dict[str, Callable[[], pd.DataFrame]] = {
-        "milestone_on_time": lambda: ev[
-            ev["event_id"].isin(m.loc[m["schedule_variance_pct"] <= ON_TIME_THRESHOLD_PCT, "event_id"])
-        ],
+        "milestone_on_time": lambda: ev[ev["event_id"].isin(m.loc[m["schedule_variance_pct"] <= ON_TIME_THRESHOLD_PCT, "event_id"])],
         "benefits_case_met": lambda: cat("project_outcome")[_p(cat("project_outcome"), "benefits_case_met") == True],  # noqa: E712
         "first_pass_approval_complex": lambda: (
             lambda d: d[

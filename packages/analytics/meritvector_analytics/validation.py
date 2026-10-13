@@ -20,12 +20,15 @@ from sklearn.model_selection import GroupKFold
 from meritvector_analytics.contextual import (
     MIN_MILESTONES,
     OUTCOMES,
+    add_person_means,
     classify,
     context_formula,
     fit_context_ols,
     fit_mixed,
     mixed_estimates,
     residual_estimates,
+    within_beta,
+    within_person_formula,
 )
 from meritvector_analytics.features import CONTEXT_NUMERIC, LeakageError, design_matrix
 from meritvector_shared import FORBIDDEN_MODEL_COLUMNS
@@ -114,9 +117,7 @@ def leakage_checks(m: pd.DataFrame, train: pd.DataFrame, test: pd.DataFrame) -> 
     )
     banned_outcome_derived = {"actual_date", "slip_days", "on_time", "quality_score", "approved_first_pass", OUTCOME}
     present = sorted(set(X.columns) & banned_outcome_derived)
-    checks.append(
-        {"check": "No outcome-derived fields in the design matrix", "passed": not present, "detail": present or "none present"}
-    )
+    checks.append({"check": "No outcome-derived fields in the design matrix", "passed": not present, "detail": present or "none present"})
     checks.append(
         {
             "check": "Out-of-time split is strictly chronological",
@@ -135,10 +136,7 @@ def leakage_checks(m: pd.DataFrame, train: pd.DataFrame, test: pd.DataFrame) -> 
     # Permutation sanity: models trained on shuffled targets must have no out-of-time skill on average.
     rng = np.random.default_rng(0)
     Xtr, Xte = _align(design_matrix(train), design_matrix(test))
-    r2s = [
-        r2_score(test[OUTCOME], LinearRegression().fit(Xtr, rng.permutation(train[OUTCOME].to_numpy())).predict(Xte))
-        for _ in range(20)
-    ]
+    r2s = [r2_score(test[OUTCOME], LinearRegression().fit(Xtr, rng.permutation(train[OUTCOME].to_numpy())).predict(Xte)) for _ in range(20)]
     r2 = float(np.mean(r2s))
     checks.append(
         {
@@ -151,14 +149,14 @@ def leakage_checks(m: pd.DataFrame, train: pd.DataFrame, test: pd.DataFrame) -> 
 
 
 def cluster_bootstrap_effects(m: pd.DataFrame, n_boot: int = 200, seed: int = 0) -> pd.DataFrame:
-    """Percentile CIs for residual-based employee estimates, resampling *projects*.
+    """Percentile CIs for employee estimates, resampling *projects*.
 
-    Independent of the mixed model's analytic intervals; used to cross-check them.
+    Context coefficients are re-estimated within person in every resample (fixed-effects estimator), so the check is
+    independent of the mixed model's distributional assumptions but shares its identification strategy.
     """
     rng = np.random.default_rng(seed)
     d = m.dropna(subset=[OUTCOME]).reset_index(drop=True)
     X = design_matrix(d).to_numpy()
-    X = np.column_stack([np.ones(len(X)), X])
     y = d[OUTCOME].to_numpy()
     proj_codes, proj_index = pd.factorize(d["project_id"])
     emp_codes, emp_index = pd.factorize(d["employee_id"])
@@ -168,12 +166,13 @@ def cluster_bootstrap_effects(m: pd.DataFrame, n_boot: int = 200, seed: int = 0)
     for b in range(n_boot):
         pick = rng.integers(0, len(rows_by_proj), len(rows_by_proj))
         idx = np.concatenate([rows_by_proj[i] for i in pick])
-        beta, *_ = np.linalg.lstsq(X[idx], y[idx], rcond=None)
+        beta = within_beta(X[idx], y[idx], emp_codes[idx])
         resid = y[idx] - X[idx] @ beta
         sums = np.bincount(emp_codes[idx], weights=resid, minlength=len(emp_index))
         cnt = np.bincount(emp_codes[idx], minlength=len(emp_index))
         with np.errstate(invalid="ignore", divide="ignore"):
-            draws[b] = sign * sums / np.where(cnt > 0, cnt, np.nan)
+            person = sums / np.where(cnt > 0, cnt, np.nan)
+            draws[b] = sign * (person - np.nanmean(person))
     lo = np.nanpercentile(draws, 2.5, axis=0)
     hi = np.nanpercentile(draws, 97.5, axis=0)
     return pd.DataFrame(
@@ -209,20 +208,17 @@ def calibration(train: pd.DataFrame, test: pd.DataFrame, threshold: float = 10.0
 
 
 def sensitivity(m: pd.DataFrame, base: pd.DataFrame) -> dict[str, Any]:
-    """Re-estimate employee effects under alternative specifications."""
+    """Re-estimate employee effects under alternative specifications (all within-person unless stated)."""
+    no_rc = [c for c in CONTEXT_NUMERIC if c != "resource_constraint"]
+    no_cx = [c for c in CONTEXT_NUMERIC if c not in ("technical_complexity", "dependency_count")]
     specs: dict[str, dict[str, Any]] = {
         "no_project_variance_component": {"project_vc": False},
-        "add_business_unit_fixed_effects": {"formula": context_formula(OUTCOME, extra="C(business_unit)")},
-        "drop_resource_constraint": {
-            "formula": context_formula(OUTCOME, numeric=[c for c in CONTEXT_NUMERIC if c != "resource_constraint"])
-        },
-        "drop_complexity_and_dependencies": {
-            "formula": context_formula(
-                OUTCOME, numeric=[c for c in CONTEXT_NUMERIC if c not in ("technical_complexity", "dependency_count")]
-            )
-        },
+        "add_business_unit_fixed_effects": {"extra": "C(business_unit)"},
+        "drop_resource_constraint": {"numeric": no_rc},
+        "drop_complexity_and_dependencies": {"numeric": no_cx},
         "winsorised_outcome_5_95": {"winsor": True},
-        "no_context_adjustment": {"formula": f"{OUTCOME} ~ 1"},
+        "random_intercept_only_v0_1": {"within": False},
+        "no_context_adjustment": {"formula": f"{OUTCOME} ~ 1", "within": False},
     }
     base = base.set_index("employee_id")
     results, per_spec = {}, {}
@@ -231,8 +227,15 @@ def sensitivity(m: pd.DataFrame, base: pd.DataFrame) -> dict[str, Any]:
         if spec.get("winsor"):
             lo, hi = d[OUTCOME].quantile([0.05, 0.95])
             d[OUTCOME] = d[OUTCOME].clip(lo, hi)
-        res, md, _, _ = fit_mixed(d, OUTCOME, formula=spec.get("formula"), project_vc=spec.get("project_vc", True))
-        est = mixed_estimates(res, md, OUTCOME)
+        numeric = spec.get("numeric", CONTEXT_NUMERIC)
+        between = None
+        if spec.get("within", True):
+            d, between = add_person_means(d, numeric)
+            formula = within_person_formula(OUTCOME, numeric=numeric, extra=spec.get("extra", ""))
+        else:
+            formula = spec.get("formula") or context_formula(OUTCOME, numeric=numeric, extra=spec.get("extra", ""))
+        res, md, _, _ = fit_mixed(d, OUTCOME, formula=formula, project_vc=spec.get("project_vc", True))
+        est = mixed_estimates(res, md, OUTCOME, between=between)
         est["conclusion"] = classify(est, OUTCOME)
         est = est.set_index("employee_id")
         joined = base.join(est, rsuffix="_alt", how="inner")
@@ -315,8 +318,7 @@ def prediction_error_analysis(train: pd.DataFrame, test: pd.DataFrame) -> dict[s
     for col in ("technical_complexity", "environment", "business_unit", "resource_band", "job_family"):
         g = t.groupby(col)
         out[col] = [
-            {"group": str(k), "mae": float(v["abs_err"].mean()), "mean_error": float(v["err"].mean()), "n": int(len(v))}
-            for k, v in g
+            {"group": str(k), "mae": float(v["abs_err"].mean()), "mean_error": float(v["err"].mean()), "n": int(len(v))} for k, v in g
         ]
     return out
 
@@ -453,9 +455,7 @@ def run_validation(
     resid = residual_estimates(m, OUTCOME, ols, d)
     cmp = boot.merge(resid, on="employee_id").merge(base_estimates[["employee_id", "ci_low", "ci_high", "n"]], on="employee_id")
     cmp = cmp[cmp["n"] >= MIN_MILESTONES]
-    agree = float(
-        (((cmp["boot_ci_low"] > 0) == (cmp["ci_low"] > 0)) & ((cmp["boot_ci_high"] < 0) == (cmp["ci_high"] < 0))).mean()
-    )
+    agree = float((((cmp["boot_ci_low"] > 0) == (cmp["ci_low"] > 0)) & ((cmp["boot_ci_high"] < 0) == (cmp["ci_high"] < 0))).mean())
     sens = sensitivity(m, base_estimates)
     return {
         "out_of_time": {"cutoff": cutoff, **baseline_comparison(train, test)},

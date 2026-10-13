@@ -39,7 +39,7 @@ markers = ["slow: full-size synthetic organisation (several minutes)"]
 filterwarnings = ["ignore::FutureWarning", "ignore::DeprecationWarning"]
 
 [tool.ruff]
-line-length = 130
+line-length = 140
 target-version = "py311"
 extend-exclude = ["apps/web", "experiments/notebooks"]
 

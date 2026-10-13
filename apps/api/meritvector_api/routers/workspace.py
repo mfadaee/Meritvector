@@ -77,24 +77,18 @@ def today(p: Principal = Depends(current_principal), db: Session = Depends(get_d
     meetings = my_meetings(db, p, start, start + timedelta(days=7))
     tasks = db.scalars(
         select(CoordinatorTask)
-        .where(
-            CoordinatorTask.tenant_id == p.tenant_id, CoordinatorTask.owner_employee_id == me, CoordinatorTask.status != "done"
-        )
+        .where(CoordinatorTask.tenant_id == p.tenant_id, CoordinatorTask.owner_employee_id == me, CoordinatorTask.status != "done")
         .order_by(CoordinatorTask.due_date)
     ).all()
     projects = my_projects(db, p)
     pids = [x.id for x in projects]
     deadlines = db.scalars(
         select(Milestone)
-        .where(
-            Milestone.project_id.in_(pids), Milestone.status != "achieved", Milestone.planned_date <= today_ + timedelta(days=30)
-        )
+        .where(Milestone.project_id.in_(pids), Milestone.status != "achieved", Milestone.planned_date <= today_ + timedelta(days=30))
         .order_by(Milestone.planned_date)
     ).all()
     risks = db.scalars(
-        select(Risk)
-        .where(Risk.project_id.in_(pids), Risk.status.in_(["open", "issue"]))
-        .order_by(Risk.severity, Risk.identified_on.desc())
+        select(Risk).where(Risk.project_id.in_(pids), Risk.status.in_(["open", "issue"])).order_by(Risk.severity, Risk.identified_on.desc())
     ).all()
     past = my_meetings(db, p, start - timedelta(days=14), start)
     ins = {i.meeting_id: i for i in db.scalars(select(MeetingInsight).where(MeetingInsight.meeting_id.in_([m.id for m in past])))}
@@ -110,9 +104,7 @@ def today(p: Principal = Depends(current_principal), db: Session = Depends(get_d
         "today": str(today_),
         "upcoming_meetings": [_meeting_dict(m) for m in meetings],
         "open_actions": [to_dict(t) | {"overdue": bool(t.due_date and t.due_date < today_)} for t in tasks],
-        "deadlines": [
-            to_dict(m) | {"project_name": pname.get(m.project_id), "overdue": m.planned_date < today_} for m in deadlines
-        ],
+        "deadlines": [to_dict(m) | {"project_name": pname.get(m.project_id), "overdue": m.planned_date < today_} for m in deadlines],
         "risks": [to_dict(r) | {"project_name": pname.get(r.project_id)} for r in risks],
         "recent_decisions": decisions,
         "reminders": [to_dict(r) for r in reminders],
@@ -163,9 +155,7 @@ def coordinator(p: Principal = Depends(current_principal), db: Session = Depends
     today_ = tenant_today(db, p.tenant_id)
     start = datetime.combine(today_, time.min)
     meetings = my_meetings(db, p, start - timedelta(days=14), start + timedelta(days=7))
-    ins = {
-        i.meeting_id: i for i in db.scalars(select(MeetingInsight).where(MeetingInsight.meeting_id.in_([m.id for m in meetings])))
-    }
+    ins = {i.meeting_id: i for i in db.scalars(select(MeetingInsight).where(MeetingInsight.meeting_id.in_([m.id for m in meetings])))}
     tasks = db.scalars(
         select(CoordinatorTask).where(CoordinatorTask.tenant_id == p.tenant_id, CoordinatorTask.owner_employee_id == me)
     ).all()
@@ -257,13 +247,9 @@ def development(p: Principal = Depends(require_assessment_enabled), db: Session 
         .order_by(EvidenceEventRow.occurred_at.desc())
     ).all()
     reviews = db.scalars(
-        select(ReviewNote)
-        .where(ReviewNote.tenant_id == p.tenant_id, ReviewNote.employee_id == me)
-        .order_by(ReviewNote.created_at.desc())
+        select(ReviewNote).where(ReviewNote.tenant_id == p.tenant_id, ReviewNote.employee_id == me).order_by(ReviewNote.created_at.desc())
     ).all()
-    goals = db.scalars(
-        select(DevelopmentGoal).where(DevelopmentGoal.tenant_id == p.tenant_id, DevelopmentGoal.employee_id == me)
-    ).all()
+    goals = db.scalars(select(DevelopmentGoal).where(DevelopmentGoal.tenant_id == p.tenant_id, DevelopmentGoal.employee_id == me)).all()
     comps = (out.payload.get("competencies") if out else []) or []
     audit.record_principal(db, p, "viewed_own_development", "employee", me)
     return {
@@ -314,9 +300,7 @@ def my_data(p: Principal = Depends(current_principal), db: Session = Depends(get
     ).all()
     t = db.get(Tenant, p.tenant_id)
     n_meetings = len(my_meetings(db, p))
-    n_tasks = db.scalar(
-        select(func.count()).where(CoordinatorTask.owner_employee_id == me, CoordinatorTask.tenant_id == p.tenant_id)
-    )
+    n_tasks = db.scalar(select(func.count()).where(CoordinatorTask.owner_employee_id == me, CoordinatorTask.tenant_id == p.tenant_id))
     challenges = db.scalars(
         select(EvidenceChallenge)
         .where(EvidenceChallenge.employee_id == me, EvidenceChallenge.tenant_id == p.tenant_id)

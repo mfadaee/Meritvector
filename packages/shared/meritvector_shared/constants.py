@@ -27,6 +27,7 @@ class Role(StrEnum):
     MANAGER = "manager"
     HR_REVIEWER = "hr_reviewer"
     ADMIN = "admin"
+    RESEARCHER = "researcher"
 
 
 ROLES = tuple(r.value for r in Role)

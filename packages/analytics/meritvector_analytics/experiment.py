@@ -23,7 +23,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from meritvector_analytics.contextual import ContextResult
+from meritvector_analytics.contextual import ContextResult, within_beta
 from meritvector_analytics.features import CONTEXT_NUMERIC, design_matrix
 
 MIN_MS = 8
@@ -48,10 +48,10 @@ def select_pair(m: pd.DataFrame, ctx: ContextResult) -> tuple[str, str]:
 
 
 def _pair_difference_bootstrap(m: pd.DataFrame, a: str, b: str, n_boot: int = 400, seed: int = 1) -> dict[str, float]:
-    """Cluster bootstrap (projects) of the B−A difference in mean context residuals."""
+    """Cluster bootstrap (projects) of the B−A difference, with within-person context coefficients per resample."""
     rng = np.random.default_rng(seed)
     d = m.dropna(subset=["schedule_variance_pct"]).reset_index(drop=True)
-    X = np.column_stack([np.ones(len(d)), design_matrix(d).to_numpy()])
+    X = design_matrix(d).to_numpy()
     y = d["schedule_variance_pct"].to_numpy()
     proj_codes, proj_index = pd.factorize(d["project_id"])
     rows = [np.nonzero(proj_codes == i)[0] for i in range(len(proj_index))]
@@ -65,7 +65,7 @@ def _pair_difference_bootstrap(m: pd.DataFrame, a: str, b: str, n_boot: int = 40
         for e in (a, b):
             pick += list(rng.choice(own[e], len(own[e])))
         idx = np.concatenate([rows[i] for i in pick])
-        beta, *_ = np.linalg.lstsq(X[idx], y[idx], rcond=None)
+        beta = within_beta(X[idx], y[idx], emp[idx])
         r = y[idx] - X[idx] @ beta
         ra, rb = r[emp[idx] == a].mean(), r[emp[idx] == b].mean()
         diffs.append(-(rb - ra))  # positive => B better than A relative to context

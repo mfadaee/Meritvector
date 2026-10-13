@@ -39,6 +39,20 @@ from meritvector_connectors import MockDataSource, build_connectors
 
 log = logging.getLogger(__name__)
 
+
+def _recorded_fields() -> list[str]:
+    from meritvector_analytics.measurement import load_job_family
+
+    spec = load_job_family("pmo")
+    return [
+        d.field
+        for d in spec.context_dimensions + spec.responsibility_dimensions
+        if d.status == "recorded" and d.field and d.field != "risks_owned"
+    ]
+
+
+RECORDED_DIMENSION_FIELDS = _recorded_fields()
+
 DEFAULT_NOTICE = (
     "MeritVector processes work records from approved business systems (project tools, the PMO register, "
     "document approvals and stakeholder surveys). It does not read e-mail or chat content, record keystrokes, "
@@ -145,6 +159,7 @@ def load_dataset(db: Session, ds: SyntheticDataset, *, enable_assessment: bool) 
                 "environment": r["environment"],
                 "maturity": r["maturity"],
                 "is_synthetic": True,
+                "dimensions": {k: r[k] for k in RECORDED_DIMENSION_FIELDS if k in r},
             }
             for r in _records(ds.projects)
         ],
@@ -265,6 +280,14 @@ def load_dataset(db: Session, ds: SyntheticDataset, *, enable_assessment: bool) 
             "employee_id": None,
             "display_name": "Platform Administrator (synthetic)",
             "role": "admin",
+            "preferences": {},
+        },
+        {
+            "id": f"u-{prefix}-RES",
+            "tenant_id": tid,
+            "employee_id": None,
+            "display_name": "Research Analyst (synthetic)",
+            "role": "researcher",
             "preferences": {},
         },
     ]

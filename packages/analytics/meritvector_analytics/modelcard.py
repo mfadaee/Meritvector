@@ -31,8 +31,10 @@ def render_model_card(r: PipelineResult) -> str:
         "- Context baseline: OLS of milestone schedule variance (and deliverable quality) on project complexity, "
         "dependencies, resource constraint, scope changes to date, team size, size band, environment, maturity, "
         "job family and time. Cluster-robust (project) standard errors.",
-        "- Adjusted estimates: linear mixed model with the same fixed effects, an employee random intercept and a "
-        "project variance component. Employee intercepts (BLUPs) with conditional 95% intervals.",
+        "- Adjusted estimates (v0.2): within-person (Mundlak / correlated random effects) linear mixed model — the same "
+        "fixed effects plus each person's mean conditions, an employee random intercept and a project variance component. "
+        "Context effects are therefore estimated from the same person's different projects, so assigning stronger people "
+        "to harder work does not bias them. The v0.1 random-intercept model is kept as a sensitivity specification.",
         "",
         "## Data",
         f"- Achieved milestones: {r.metrics['counts']['milestones']} across {r.metrics['counts']['projects']} projects; "

@@ -13,7 +13,7 @@ hypotheses:
     h1: Earlier raw results are associated with later assignment difficulty.
     unit: employee
     test: spearman
-    variables: {x: first_year_on_time_rate, y: later_context_expected}
+    variables: {x: first_year_on_time, y: later_context_expected}
     assumptions: [Monotone relationship; employees with projects in both periods.]
   - id: H2
     question: RQ3

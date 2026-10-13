@@ -158,9 +158,7 @@ class GovernanceRequest(BaseModel):
 def governance(p: Principal = Depends(require_roles("admin", "hr_reviewer")), db: Session = Depends(get_db)) -> dict:
     t = db.get(Tenant, p.tenant_id)
     rows = db.scalars(
-        select(GovernanceApproval)
-        .where(GovernanceApproval.tenant_id == p.tenant_id)
-        .order_by(GovernanceApproval.created_at.desc())
+        select(GovernanceApproval).where(GovernanceApproval.tenant_id == p.tenant_id).order_by(GovernanceApproval.created_at.desc())
     ).all()
     return {
         "assessment_enabled": t.assessment_enabled,
@@ -170,9 +168,7 @@ def governance(p: Principal = Depends(require_roles("admin", "hr_reviewer")), db
 
 
 @router.post("/admin/governance/request")
-def governance_request(
-    body: GovernanceRequest, p: Principal = Depends(require_roles("admin")), db: Session = Depends(get_db)
-) -> dict:
+def governance_request(body: GovernanceRequest, p: Principal = Depends(require_roles("admin")), db: Session = Depends(get_db)) -> dict:
     g = GovernanceApproval(
         tenant_id=p.tenant_id,
         purpose=body.purpose,
@@ -246,8 +242,7 @@ def jobs(p: Principal = Depends(require_roles("admin")), db: Session = Depends(g
     return {
         "jobs": [to_dict(j) for j in js],
         "runs": [
-            {k: v for k, v in to_dict(r).items() if k != "detail"}
-            | {"detail": {k: v for k, v in (r.detail or {}).items() if k != "trace"}}
+            {k: v for k, v in to_dict(r).items() if k != "detail"} | {"detail": {k: v for k, v in (r.detail or {}).items() if k != "trace"}}
             for r in runs
         ],
     }
@@ -292,7 +287,7 @@ def connectors(p: Principal = Depends(current_principal), db: Session = Depends(
 
 
 class RoleUpdate(BaseModel):
-    role: Literal["employee", "manager", "hr_reviewer", "admin"]
+    role: Literal["employee", "manager", "hr_reviewer", "admin", "researcher"]
 
 
 @router.get("/admin/users")
@@ -309,9 +304,7 @@ def users(q: str = "", p: Principal = Depends(require_roles("admin")), db: Sessi
 
 
 @router.put("/admin/users/{user_id}/role")
-def set_role(
-    user_id: str, body: RoleUpdate, p: Principal = Depends(require_roles("admin")), db: Session = Depends(get_db)
-) -> dict:
+def set_role(user_id: str, body: RoleUpdate, p: Principal = Depends(require_roles("admin")), db: Session = Depends(get_db)) -> dict:
     u = db.get(User, user_id)
     if u is None or u.tenant_id != p.tenant_id:
         raise HTTPException(404, "User not found")

@@ -63,9 +63,7 @@ def main(argv: list[str] | None = None) -> None:
             from meritvector_api.seed import bootstrap
 
             print(
-                json.dumps(
-                    bootstrap(db, train=not args.no_train, sandbox=not args.no_sandbox, n_boot=args.n_boot), indent=2, default=str
-                )
+                json.dumps(bootstrap(db, train=not args.no_train, sandbox=not args.no_sandbox, n_boot=args.n_boot), indent=2, default=str)
             )
         elif args.cmd == "train":
             from meritvector_api.training import train_tenant

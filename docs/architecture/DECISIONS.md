@@ -43,3 +43,22 @@ nothing is ever hard-coded). Demo sign-in is controlled by `MV_DEMO_AUTH` and is
 ## ADR-010 — PostgreSQL in deployment, SQLite in tests
 SQLAlchemy models use portable types (JSON, Date, DateTime) so the same code runs on both. Docker Compose uses
 PostgreSQL 16; the test suite uses temporary SQLite databases for speed.
+
+## ADR-011 — Within-person (Mundlak) context model as the primary estimator (v0.2)
+The research engine's Scenario A and D checks showed that a cross-person context model under-estimates how much
+conditions matter when stronger people are assigned harder work (complexity +2.6 vs true +5.5), so people on
+difficult projects stay under-credited after "adjustment". Adding person means of each context variable makes the
+context coefficients within-person while keeping shrunk person intercepts. On the synthetic organisation it recovers
+the generator's coefficients, raises directional accuracy of strong conclusions from 96% to 99% and moves the mean
+estimate for strong people on difficult projects from +3.1 to +6.7 pp (truth +8.2). The v0.1 model remains a
+sensitivity specification. Remaining assumption: no time-varying confounding of assignment by past outcomes.
+
+## ADR-012 — Cluster-aware inference for project-level variables
+Milestones of a project share a shock. A naive i.i.d. F-test made eight negative-control dimensions look jointly
+significant (p = 0.034); a project-clustered Wald test does not (p = 0.65). All project-level inference uses
+project-clustered standard errors or project-level aggregation (H6).
+
+## ADR-013 — Measurement definitions outside the code
+Ontology, job-family specifications, research questions, hypotheses and DAGs are YAML in `config/`, validated by a
+versioned schema. The context model's covariates are the spec's dimensions with status `modelled`; tests fail if
+generated schemas or docs drift.

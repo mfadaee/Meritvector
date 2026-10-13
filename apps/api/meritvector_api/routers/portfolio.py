@@ -136,9 +136,7 @@ def projects(
     items = [to_dict(r) | {"health": hm.get(r.id, {}).get("health")} for r in rows]
     if health:
         items = [i for i in items if i["health"] == health]
-    leads = {
-        e.id: e.display_name for e in db.scalars(select(Employee).where(Employee.id.in_({i["lead_employee_id"] for i in items})))
-    }
+    leads = {e.id: e.display_name for e in db.scalars(select(Employee).where(Employee.id.in_({i["lead_employee_id"] for i in items})))}
     for i in items:
         i["lead_name"] = leads.get(i["lead_employee_id"])
     bus = sorted(set(db.scalars(select(Project.business_unit).where(Project.tenant_id == p.tenant_id).distinct())))
@@ -261,9 +259,7 @@ def risks(p: Principal = Depends(current_principal), db: Session = Depends(get_d
         "open_high_register": [
             {k: (str(v) if k.endswith("_on") and v is not None else v) for k, v in row.items()}
             for row in _clean(
-                register[["id", "project_id", "name", "title", "severity", "status", "identified_on", "business_unit"]].to_dict(
-                    "records"
-                )
+                register[["id", "project_id", "name", "title", "severity", "status", "identified_on", "business_unit"]].to_dict("records")
             )
         ],
     }
@@ -288,9 +284,7 @@ def bottlenecks(p: Principal = Depends(current_principal), db: Session = Depends
     by_team = by_team.sort_values("open", ascending=False)
     ms = _milestone_frame(db, p.tenant_id)
     ach = ms[ms["status"] == "achieved"].copy()
-    ach["resource_band"] = pd.cut(ach["resource_constraint"], [-0.01, 0.3, 0.6, 1.0], labels=["low", "medium", "high"]).astype(
-        str
-    )
+    ach["resource_band"] = pd.cut(ach["resource_constraint"], [-0.01, 0.3, 0.6, 1.0], labels=["low", "medium", "high"]).astype(str)
     res = (
         ach.groupby(["resource_band", "technical_complexity"])
         .agg(milestones=("id", "size"), on_time_rate=("on_time", "mean"), mean_slip_pct=("slip_pct", "mean"))

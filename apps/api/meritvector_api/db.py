@@ -38,6 +38,24 @@ def engine() -> Engine:
 
 def create_all() -> None:
     Base.metadata.create_all(engine())
+    ensure_columns()
+
+
+def ensure_columns() -> None:
+    """Additive schema evolution: add nullable columns that exist in the models but not yet in the database."""
+    from sqlalchemy import inspect, text
+
+    eng = engine()
+    insp = inspect(eng)
+    with eng.begin() as conn:
+        for table in Base.metadata.sorted_tables:
+            if not insp.has_table(table.name):
+                continue
+            have = {c["name"] for c in insp.get_columns(table.name)}
+            for col in table.columns:
+                if col.name not in have and col.nullable:
+                    ddl = col.type.compile(dialect=eng.dialect)
+                    conn.execute(text(f'ALTER TABLE {table.name} ADD COLUMN "{col.name}" {ddl}'))
 
 
 def session() -> Session:

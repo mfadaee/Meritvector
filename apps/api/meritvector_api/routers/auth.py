@@ -45,15 +45,11 @@ def _persona(u: User, label: str, why: str) -> dict:
 
 def _employee_persona(db: Session, tenant_id: str, preferred: str | None) -> Employee | None:
     """A delivery employee with an active project, preferably in the flagship experiment's team."""
-    active_leads = set(
-        db.scalars(select(Project.lead_employee_id).where(Project.tenant_id == tenant_id, Project.status == "active"))
-    )
+    active_leads = set(db.scalars(select(Project.lead_employee_id).where(Project.tenant_id == tenant_id, Project.status == "active")))
     pref = db.get(Employee, preferred) if preferred else None
     if pref is not None and pref.id in active_leads:
         return pref
-    stmt = select(Employee).where(
-        Employee.tenant_id == tenant_id, Employee.job_family != "program_manager", Employee.id.in_(active_leads)
-    )
+    stmt = select(Employee).where(Employee.tenant_id == tenant_id, Employee.job_family != "program_manager", Employee.id.in_(active_leads))
     if pref is not None:
         team = db.scalars(stmt.where(Employee.manager_id == pref.manager_id).order_by(Employee.id)).first()
         if team is not None:
@@ -69,13 +65,11 @@ def demo_personas(db: Session = Depends(get_db)) -> list[dict]:
         run = latest_run(db, t.id)
         emp = _employee_persona(db, t.id, run.experiment.get("employees", {}).get("B") if run else None)
         if emp is not None:
-            out.append(
-                _persona(db.get(User, f"u-{emp.id}"), "Employee", f"{emp.job_family.replace('_', ' ').title()} — {t.name}")
-            )
+            out.append(_persona(db.get(User, f"u-{emp.id}"), "Employee", f"{emp.job_family.replace('_', ' ').title()} — {t.name}"))
             mgr = db.get(User, f"u-{emp.manager_id}")
             if mgr is not None:
                 out.append(_persona(mgr, "Manager", f"Programme manager of {emp.display_name} — {t.name}"))
-        for role, label in (("hr_reviewer", "HR reviewer"), ("admin", "Administrator")):
+        for role, label in (("hr_reviewer", "HR reviewer"), ("admin", "Administrator"), ("researcher", "Researcher")):
             u = db.scalars(select(User).where(User.tenant_id == t.id, User.role == role).order_by(User.id)).first()
             if u is not None:
                 out.append(_persona(u, label, t.name))
@@ -144,5 +138,6 @@ def me(p: Principal = Depends(current_principal), db: Session = Depends(get_db))
             "validation": p.role in ("manager", "hr_reviewer", "admin") and t.assessment_enabled,
             "fairness_audit": p.role in ("hr_reviewer", "admin") and t.assessment_enabled,
             "administration": p.role in ("admin", "hr_reviewer"),
+            "research": p.role in ("researcher", "hr_reviewer", "admin") and t.assessment_enabled,
         },
     }

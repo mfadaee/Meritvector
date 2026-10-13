@@ -55,9 +55,7 @@ def employee_metrics(fs: FeatureSet) -> pd.DataFrame:
     out["proactive_risk_rate"] = proactive
 
     br = ev[ev["category"] == "blocker_resolved"]
-    out["blocker_median_days"] = (
-        br.assign(d=_payload_col(br, "days_to_resolve").astype(float)).groupby("employee_id")["d"].median()
-    )
+    out["blocker_median_days"] = br.assign(d=_payload_col(br, "days_to_resolve").astype(float)).groupby("employee_id")["d"].median()
     dr = ev[ev["category"] == "dependency_resolved"]
     out["dependency_median_days"] = dr.assign(d=_payload_col(dr, "days_open").astype(float)).groupby("employee_id")["d"].median()
     sf = ev[ev["category"] == "stakeholder_feedback"]

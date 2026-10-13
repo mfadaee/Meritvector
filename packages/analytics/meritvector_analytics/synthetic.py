@@ -272,6 +272,8 @@ class _Builder:
     def __init__(self, cfg: SyntheticConfig):
         self.cfg = cfg
         self.rng = np.random.default_rng(cfg.seed)
+        # Independent stream for dimensions added in v0.2, so every v0.1 outcome stays bit-for-bit identical.
+        self.rng2 = np.random.default_rng([cfg.seed, 2])
         self.start = cfg.start
         self.as_of = cfg.as_of
         self.total_days = (self.as_of - self.start).days
@@ -448,6 +450,37 @@ class _Builder:
             "team_size": team_size,
             "environment": environment,
             "maturity": maturity,
+        }
+
+    def _recorded_dimensions(self, ctx: dict[str, Any], fam: str, programme: bool) -> dict[str, Any]:
+        """Dimensions recorded by the PMO but with **no effect on outcomes** in the generator (negative controls).
+
+        Responsibility dimensions describe the lead's scope on the project. They are correlated with project size
+        and role, as in real organisations, but contribution is generated independently of them.
+        """
+        r = self.rng2
+        size, cx = ctx["size_band"], ctx["technical_complexity"]
+        tpm = fam == "technical_project_manager"
+        return {
+            # recorded context
+            "schedule_criticality": int(np.clip(round(1 + 0.4 * size + r.normal(0, 0.7)), 1, 3)),
+            "visibility_level": int(np.clip(round(0.5 + 0.6 * size + (0.8 if programme else 0) + r.normal(0, 0.6)), 1, 3)),
+            "stakeholder_groups": int(1 + r.poisson(1.0 + 1.2 * size)),
+            "technical_uncertainty": int(np.clip(round(0.6 + 0.35 * cx + r.normal(0, 0.6)), 1, 3)),
+            "operational_criticality": int(r.choice([1, 2, 3], p=[0.45, 0.4, 0.15])),
+            "sites": int(1 + r.poisson(0.4 + 0.5 * size)),
+            "vendor_count": int(r.poisson(0.5 + 0.6 * size)),
+            "integration_points": int(r.poisson(0.8 + 0.6 * cx + (0.8 if tpm else 0))),
+            # responsibility of the lead on this project
+            "decision_authority": int(np.clip(round(1.5 + 0.5 * size + (0.8 if programme else 0) + r.normal(0, 0.6)), 1, 4)),
+            "influence_type": "direct" if r.random() < (0.35 + 0.15 * size) else "indirect",
+            "workstreams": int(1 + r.poisson(0.5 * size + (2.0 if programme else 0))),
+            "budget_accountable": bool(r.random() < 0.25 + 0.2 * size),
+            "teams_coordinated": int(1 + r.poisson(0.4 + 0.15 * ctx["team_size"] + 0.3 * ctx["dependency_count"])),
+            "scope_level": "strategic" if programme else str(r.choice(["tactical", "mixed"], p=[0.65, 0.35])),
+            "executive_exposure": int(np.clip(round(0.6 + 0.5 * size + (0.7 if programme else 0) + r.normal(0, 0.6)), 1, 3)),
+            "technical_judgement_required": int(np.clip(round(1 + (0.9 if tpm else 0.2) + 0.2 * cx + r.normal(0, 0.5)), 1, 3)),
+            "autonomy": int(np.clip(round(1.6 + 0.3 * size + r.normal(0, 0.6)), 1, 3)),
         }
 
     def build_projects(self, employees: pd.DataFrame, truth: pd.DataFrame) -> None:
@@ -806,6 +839,7 @@ class _Builder:
                 "status": status,
                 "is_synthetic": True,
                 **ctx,
+                **self._recorded_dimensions(ctx, emp.job_family, programme),
             }
         )
 
@@ -841,9 +875,7 @@ class _Builder:
                 )
 
     # --------------------------------------------------------------- ratings
-    def build_ratings(
-        self, employees: pd.DataFrame, truth: pd.DataFrame, protected: pd.DataFrame
-    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def build_ratings(self, employees: pd.DataFrame, truth: pd.DataFrame, protected: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         rng = self.rng
         ms = pd.DataFrame(self.milestones)
         ms = ms[ms["status"] == "achieved"].copy()
