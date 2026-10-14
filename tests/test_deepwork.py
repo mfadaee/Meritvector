@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+from conftest import login
 from sqlalchemy import select
 
 from meritvector_analytics.evidence_chains import build_chains
 from meritvector_analytics.responsibility import labelled_dimensions, responsibility_scope
 from meritvector_coordinator import Document, search
-from tests.conftest import login
 
 
 def test_chain_links_mitigation_to_next_milestone_and_labels_inference():
