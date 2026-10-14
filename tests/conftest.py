@@ -50,6 +50,22 @@ def small_result(small_dataset):
 
 
 @pytest.fixture(scope="session")
+def full_result(full_dataset):
+    from meritvector_analytics.pipeline import run_pipeline
+
+    d = full_dataset
+    return run_pipeline(
+        d.events,
+        d.employees,
+        str(d.config.as_of),
+        manager_ratings=d.manager_ratings,
+        promotions=d.promotions,
+        protected_attributes=d.protected_attributes,
+        n_boot=100,
+    )
+
+
+@pytest.fixture(scope="session")
 def api_client():
     db_path = _TMP / "api-test.db"
     if db_path.exists():

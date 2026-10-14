@@ -73,3 +73,43 @@ def recovery_report(result, ground_truth: pd.DataFrame, manager_ratings: pd.Data
         "B_archetype": str(d.loc[b, "archetype"]),
     }
     return report
+
+
+def flagship_truth_check(result, flagship: dict[str, Any], ground_truth: pd.DataFrame) -> dict[str, Any]:
+    """Compare the flagship's signals with hidden synthetic contribution — evaluation only, after modelling."""
+    from meritvector_analytics.flagship import PROXIES
+
+    m = result.features.milestones
+    gt = ground_truth.set_index("employee_id")
+    mm = m[["employee_id", "month_index"]].join(gt[["true_contribution", "growth_per_year"]], on="employee_id")
+    mm["skill_t"] = mm["true_contribution"] + mm["growth_per_year"] * mm["month_index"] / 12
+    people = flagship["_people"].join(mm.groupby("employee_id")["skill_t"].mean().rename("truth"), how="inner")
+    people["true_effect"] = GENERATOR_SCHEDULE_COEF * (people["truth"] - people["truth"].mean())
+    true_top = people["truth"] >= people["truth"].quantile(0.75)
+
+    signals = {"adjusted_estimate": ("MeritVector context-adjusted estimate", 1), **PROXIES}
+    rows = []
+    for col, (label, sign) in signals.items():
+        if col not in people or people[col].notna().sum() < 10:
+            continue
+        x = people[[col, "truth"]].dropna()
+        rho = stats.spearmanr(sign * x[col], x["truth"]).statistic
+        pct = (sign * people[col]).rank(pct=True)
+        misplaced = float((pct[true_top] < 0.5).mean())
+        rows.append({"signal": label, "spearman_with_truth": float(rho), "true_top_quartile_placed_in_bottom_half": misplaced})
+    raw_pct = people["raw_on_time_rate"].rank(pct=True)
+    top_raw = people[raw_pct >= 0.8]
+    above = people[people["conclusion"] == "above_context_expectation"]
+    below = people[people["conclusion"] == "below_context_expectation"]
+    examples = {
+        e["person"]: float(people.loc[people["pseudonym"] == e["person"], "true_effect"].iloc[0])
+        for e in flagship["steps"]["5_interpretations"]["examples"]
+    }
+    return {
+        "signals": rows,
+        "raw_top_quintile_truly_above_average": float((top_raw["true_effect"] > 0).mean()),
+        "adjusted_above_truly_above_average": float((above["true_effect"] > 0).mean()) if len(above) else None,
+        "adjusted_below_truly_below_average": float((below["true_effect"] < 0).mean()) if len(below) else None,
+        "example_true_effects_pp": examples,
+        "note": "Evaluation only — possible because the organisation is synthetic. Hidden parameters never entered the analysis.",
+    }

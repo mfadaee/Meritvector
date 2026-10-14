@@ -577,7 +577,7 @@ def china(seed: int = 0) -> dict[str, Any]:
 
 STUDIES = {
     "ebspm": ("Organisations' cost and duration, raw vs adjusted (EBSPM, 492 projects)", ebspm),
-    "maxwell": ("Context vs staff skills in productivity (Maxwell, 62 projects)", maxwell),
+    "maxwell": ("Context vs staff skills in productivity (Maxwell, 63 projects)", maxwell),
     "nasa93": ("NASA centres and capability ratings (NASA93, 93 projects)", nasa93),
     "desharnais": ("Manager experience and productivity (Desharnais, 77 projects)", desharnais),
     "china": ("Model generalisation and leakage (China, 499 projects)", china),

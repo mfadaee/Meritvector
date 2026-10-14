@@ -86,6 +86,18 @@ def experiment(p: Principal = Depends(require_assessment_enabled), db: Session =
     return {"run_id": run.id, **exp}
 
 
+@router.get("/flagship")
+def flagship(p: Principal = Depends(require_assessment_enabled), db: Session = Depends(get_db)) -> dict:
+    """Flagship v2: do raw metrics misrepresent project-manager contribution? Pseudonymised, aggregate-first."""
+    # Administrators are excluded: the study includes pseudonymised individual examples (data minimisation).
+    _roles(p, "hr_reviewer", "researcher")
+    run = _run(db, p)
+    if not run.flagship:
+        raise HTTPException(404, "This model run predates the flagship study — retrain to produce it")
+    audit.record_principal(db, p, "viewed_flagship", "model_run", run.id)
+    return {"run_id": run.id, "created_at": str(run.created_at), **run.flagship}
+
+
 @router.get("/validation")
 def validation(p: Principal = Depends(require_assessment_enabled), db: Session = Depends(get_db)) -> dict:
     _roles(p, "manager", "hr_reviewer", "admin")

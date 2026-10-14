@@ -109,6 +109,11 @@ the `model_runs` table.
 * Flagship experiment (two-person): unadjusted, Employee A is 23 pp ahead (on-time 95% vs 0%). After adjustment B's
   estimate is +8.1 pp [1.2, 14.9] (truth +6.2) and A's −0.7, but the two people's operating conditions barely overlap,
   so the comparison is reported as **inconclusive** rather than over-claimed.
+* **Flagship v2** — *Do raw performance metrics misrepresent project-manager contribution?* (all 298 PMs with settled
+  milestones, 7 steps): measured conditions alone predict 46% of the raw spread; only 54% of the raw "top fifth" are
+  truly above average, while 100% of "above context expectation" conclusions are (synthetic truth). Activity proxies
+  point the wrong way. Report: [FLAGSHIP_REPORT](docs/research/FLAGSHIP_REPORT.md) · dashboard: *Flagship Study* ·
+  notebook: `experiments/notebooks/flagship_v2_raw_metrics_vs_contribution.ipynb` · script: `python scripts/run_flagship.py`.
 * Research Laboratory: 15 reproducible workstreams (EDA, registered hypotheses with Holm correction, model comparison,
   30-day milestone-risk classifier PR-AUC 0.85, clustering, growth models, causal DAGs, experiment design) and six
   synthetic scenarios with known truth. See [RESEARCH_LAB_FINDINGS](docs/research/RESEARCH_LAB_FINDINGS.md).

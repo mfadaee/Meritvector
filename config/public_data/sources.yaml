@@ -41,7 +41,7 @@ sources:
     sha256: c8e6890150fa5d63d7e17de214495f311c6425778e48aca9cc1b793201c2a5a1
     origin: "Maxwell, K. D. (2002). Applied Statistics for Software Managers. Prentice Hall (Appendix dataset); PROMISE repository copy"
     terms: Published as a book appendix dataset for readers; widely redistributed via the PROMISE repository for research
-    description: 62 development projects at a large Finnish commercial bank, 1985–1993, with 15 rated project and staff factors.
+    description: About 62 development projects at a large Finnish commercial bank, 1985–1993 (the PROMISE copy has 63 records), with 15 rated project and staff factors.
     unit: project
     roles:
       size: size_D

@@ -15,6 +15,7 @@ const NAV: { href: string; label: string; show?: (p: Record<string, boolean>) =>
   { href: "/evidence", label: "Contribution Evidence" },
   { href: "/analysis", label: "Contextual Analysis", show: (p) => p.analysis },
   { href: "/validation", label: "Model Validation", show: (p) => p.validation },
+  { href: "/flagship", label: "Flagship Study", show: (p) => p.flagship },
   { href: "/research", label: "Research Laboratory", show: (p) => p.research },
   { href: "/admin", label: "Administration & Privacy" },
 ];

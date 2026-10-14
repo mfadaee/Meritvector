@@ -12,7 +12,8 @@ import pandas as pd
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from meritvector_analytics.evaluation import recovery_report
+from meritvector_analytics.evaluation import flagship_truth_check, recovery_report
+from meritvector_analytics.flagship import run_flagship
 from meritvector_analytics.pipeline import run_pipeline, save_artifacts
 from meritvector_api.audit import now
 from meritvector_api.models import (
@@ -79,12 +80,17 @@ def train_tenant(db: Session, tenant_id: str, n_boot: int | None = None) -> Mode
     )
     out_dir = save_artifacts(result, s.artifact_dir / tenant_id)
 
+    flagship = run_flagship(result, f["ratings"], synthetic=tenant.is_synthetic)
     synthetic_eval = None
     gt_path = Path(s.data_dir) / tenant_id / "hidden" / "ground_truth.csv"
     if tenant.is_synthetic and gt_path.exists():
         # Evaluation harness only: hidden parameters are compared with outputs *after* training.
-        synthetic_eval = _json(recovery_report(result, pd.read_csv(gt_path), f["ratings"]))
+        gt = pd.read_csv(gt_path)
+        synthetic_eval = _json(recovery_report(result, gt, f["ratings"]))
         (out_dir / "synthetic_evaluation.json").write_text(json.dumps(synthetic_eval, indent=2))
+        flagship["truth_check"] = flagship_truth_check(result, flagship, gt)
+    flagship_public = _json({k: v for k, v in flagship.items() if not k.startswith("_")})
+    (out_dir / "flagship_v2.json").write_text(json.dumps(flagship_public, indent=2))
 
     portfolio = {
         "delivery_trend": _json(result.portfolio_trend.to_dict("records")),
@@ -102,6 +108,7 @@ def train_tenant(db: Session, tenant_id: str, n_boot: int | None = None) -> Mode
         fairness=_json(result.fairness),
         portfolio=portfolio,
         synthetic_evaluation=synthetic_eval,
+        flagship=flagship_public,
         model_card=result.model_card,
         artifact_path=str(out_dir),
     )
