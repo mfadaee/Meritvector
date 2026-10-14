@@ -23,19 +23,23 @@ def contribution_narrative(sched: dict[str, Any] | None, raw: dict[str, Any] | N
     if expected is not None and actual is not None:
         out.append(
             f"Across {n} settled milestones, this person's projects slipped on average {actual:.1f}% of the planned "
-            f"interval. Given how complex, constrained and dependent those projects were, a typical slip of "
-            f"{expected:.1f}% would be expected."
+            f"interval. A simple comparison with similar projects across the organisation would expect {expected:.1f}%."
         )
     est, lo, hi = sched["adjusted_estimate"], sched.get("ci_low"), sched.get("ci_high")
     conclusion = sched.get("conclusion")
+    primary = (
+        "The primary model also compares the person with themselves across easier and harder projects, which corrects "
+        "for harder work tending to go to particular people. "
+    )
     if conclusion == "above_context_expectation":
         out.append(
-            f"Delivery was better than these conditions predict, by about {_pp(est)} — and the uncertainty range "
-            f"({lo:+.1f} to {hi:+.1f}) does not include zero."
+            primary + f"It estimates delivery was better than these conditions predict, by about {_pp(est)} — and the "
+            f"uncertainty range ({lo:+.1f} to {hi:+.1f}) does not include zero."
         )
     elif conclusion == "below_context_expectation":
         out.append(
-            f"Delivery was weaker than these conditions predict, by about {_pp(est)} (range {lo:+.1f} to {hi:+.1f}). "
+            primary + f"It estimates delivery was weaker than these conditions predict, by about {_pp(est)} (range "
+            f"{lo:+.1f} to {hi:+.1f}). "
             "Before drawing any conclusion, check for context the data does not capture — team changes, sponsor "
             "issues, or work outside the register."
         )
@@ -43,8 +47,8 @@ def contribution_narrative(sched: dict[str, Any] | None, raw: dict[str, Any] | N
         out.append("The evidence is too thin or too variable to say whether delivery differs from what conditions predict.")
     else:
         out.append(
-            f"Delivery was in line with what these conditions predict (best estimate {est:+.1f}, range {lo:+.1f} to "
-            f"{hi:+.1f}, which includes zero)."
+            primary + f"It finds delivery in line with what these conditions predict (best estimate {est:+.1f}, range "
+            f"{lo:+.1f} to {hi:+.1f}, which includes zero)."
         )
     on_time = raw.get("on_time_rate")
     if on_time is not None and raw.get("mean_complexity") is not None:

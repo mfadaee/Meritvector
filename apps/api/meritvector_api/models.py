@@ -317,6 +317,7 @@ class ModelRun(Base):
     fairness: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     portfolio: Mapped[dict] = mapped_column(JSON, default=dict)
     synthetic_evaluation: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    flagship: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     model_card: Mapped[str] = mapped_column(Text, default="")
     artifact_path: Mapped[str] = mapped_column(String(400))
 

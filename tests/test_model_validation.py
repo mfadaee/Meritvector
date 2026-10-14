@@ -3,21 +3,6 @@
 import pytest
 
 from meritvector_analytics.evaluation import recovery_report
-from meritvector_analytics.pipeline import run_pipeline
-
-
-@pytest.fixture(scope="module")
-def full_result(full_dataset):
-    d = full_dataset
-    return run_pipeline(
-        d.events,
-        d.employees,
-        str(d.config.as_of),
-        manager_ratings=d.manager_ratings,
-        promotions=d.promotions,
-        protected_attributes=d.protected_attributes,
-        n_boot=100,
-    )
 
 
 @pytest.mark.slow

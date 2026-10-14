@@ -1,7 +1,8 @@
-"""Build (and optionally execute) the flagship experiment notebook.
+"""Build (and optionally execute) the flagship notebooks.
 
-python scripts/build_notebook.py            # write the notebook
-python scripts/build_notebook.py --execute  # write and execute it in place
+python scripts/build_notebook.py                    # write both notebooks
+python scripts/build_notebook.py --execute          # write and execute them in place
+python scripts/build_notebook.py --only v2 --execute
 """
 
 from __future__ import annotations
@@ -154,25 +155,151 @@ print("Reproducible: identical data and identical experiment output for seed", S
 ]
 
 
-def build() -> nbf.NotebookNode:
+OUT_V2 = OUT.with_name("flagship_v2_raw_metrics_vs_contribution.ipynb")
+
+CELLS_V2 = [
+    (
+        "md",
+        """# Flagship v2 — do raw performance metrics misrepresent project-manager contribution?
+
+**All data in the first part is synthetic** (fixed seed). Every project manager with settled milestones is included.
+The seven steps follow the study protocol: raw outcomes → assignment → transparent and primary models → uncertainty →
+interpretations before/after → sensitivity and omitted confounders → misleading proxies. Hidden synthetic parameters
+are read only at the end, by the evaluation harness, to check the method. The last part repeats the key comparison on
+**public real-world project data** when it has been fetched (`python scripts/fetch_public_data.py`).
+
+Ground rules: selection rules use observable data only and are fixed in advance; nobody is designated as superior;
+adjusted estimates are associations, not causal effects of a person.""",
+    ),
+    (
+        "code",
+        """import warnings
+warnings.filterwarnings("ignore")
+import pandas as pd
+pd.set_option("display.width", 140)
+from meritvector_analytics.synthetic import generate
+from meritvector_analytics.pipeline import run_pipeline
+from meritvector_analytics.flagship import run_flagship
+
+ds = generate()
+result = run_pipeline(ds.events, ds.employees, str(ds.config.as_of), manager_ratings=ds.manager_ratings,
+                      promotions=ds.promotions, protected_attributes=ds.protected_attributes, n_boot=100)
+f = run_flagship(result, ds.manager_ratings)
+steps = f["steps"]
+print(f["title"]); print(len(f["_people"]), "project managers")""",
+    ),
+    ("md", "## Step 1 — Raw delivery outcomes"),
+    (
+        "code",
+        """print(steps["1_raw_outcomes"]["plain_language"])
+pd.Series(steps["1_raw_outcomes"]["on_time_rate_quantiles"], name="raw on-time rate")""",
+    ),
+    ("md", "## Step 2 — Who gets which conditions"),
+    (
+        "code",
+        """print(steps["2_assignment"]["plain_language"])
+pd.DataFrame(steps["2_assignment"]["conditions_by_job_family"])""",
+    ),
+    ("md", "## Step 3 — Transparent baseline (cluster-robust OLS) and the primary within-person model"),
+    (
+        "code",
+        """print(steps["3_models"]["plain_language"])
+b = pd.DataFrame(steps["3_models"]["transparent_baseline"]["coefficients"]).set_index("term")
+b["within_person"] = pd.Series(steps["3_models"]["primary_model"]["within_person_coefficients"])
+b""",
+    ),
+    ("md", "## Step 4 — Uncertainty and unsupported conclusions"),
+    (
+        "code",
+        """print(steps["4_uncertainty"]["plain_language"])
+pd.Series(steps["4_uncertainty"]["conclusion_counts"], name="people")""",
+    ),
+    ("md", "## Step 5 — The same records, read before and after contextual analysis"),
+    (
+        "code",
+        """print("Selection rule:", steps["5_interpretations"]["selection_rule"], "\\n")
+for e in steps["5_interpretations"]["examples"]:
+    print(e["person"], "|", e["conditions"])
+    print("  raw dashboard:", e["raw_dashboard_reading"])
+    print("  MeritVector:  ", e["meritvector_reading"], "\\n")""",
+    ),
+    ("md", "## Step 6 — Sensitivity to assumptions and omitted confounders"),
+    (
+        "code",
+        """print(steps["6_sensitivity"]["plain_language"])
+pd.DataFrame(steps["6_sensitivity"]["alternative_specifications"]).T""",
+    ),
+    ("md", "## Step 7 — How misleading proxies distort assessment"),
+    (
+        "code",
+        """print(steps["7_proxies"]["plain_language"])
+pd.DataFrame(steps["7_proxies"]["proxies"])""",
+    ),
+    (
+        "md",
+        """## Check against the hidden synthetic truth (evaluation only)
+
+Possible only because the organisation is synthetic. The hidden parameters were not used anywhere above.""",
+    ),
+    (
+        "code",
+        """from meritvector_analytics.evaluation import flagship_truth_check
+t = flagship_truth_check(result, f, ds.ground_truth)
+print(f"Raw top fifth truly above average: {t['raw_top_quintile_truly_above_average']:.0%}")
+print(f"'Above expectation' conclusions truly above average: {t['adjusted_above_truly_above_average']:.0%}")
+print("True effects of the step-5 examples (pp):", {k: round(v, 1) for k, v in t["example_true_effects_pp"].items()})
+pd.DataFrame(t["signals"])""",
+    ),
+    ("md", "## Does it hold on real data? (public project datasets)"),
+    (
+        "code",
+        """from meritvector_analytics.public_data import sources
+if all(s.available for k, s in sources().items() if k in ("ebspm", "desharnais")):
+    from meritvector_analytics.public_data.studies import desharnais, ebspm
+    e = ebspm(n_boot=100)
+    print(e["plain_language"], "\\n")
+    print(desharnais(n_boot=500)["plain_language"])
+    team = e["results"]["log_cost_per_fp"]["team_indicators"]
+    display(pd.DataFrame({k: {"raw %": v["raw_pct"], "adjusted %": v["adjusted_pct"]} for k, v in team.items()}).T.round(1))
+else:
+    print("Public datasets not fetched — run: python scripts/fetch_public_data.py")""",
+    ),
+    (
+        "md",
+        """## Reading the result
+
+Raw metrics mostly describe the portfolio a person was given. Adjusting for measured conditions — and saying "no
+conclusion" when the evidence is thin — changes most raw verdicts, and the adjusted reading tracks the (synthetic)
+truth far better than raw rates, activity, perception scores or historical ratings. On real projects the same
+distortion appears for team indicators. None of this validates individual estimates in a real organisation; that
+requires a governed pilot.""",
+    ),
+]
+
+
+def build(cells: list[tuple[str, str]] | None = None) -> nbf.NotebookNode:
     nb = nbf.v4.new_notebook()
     nb.metadata["kernelspec"] = {"name": "python3", "display_name": "Python 3", "language": "python"}
-    nb.cells = [nbf.v4.new_markdown_cell(src) if kind == "md" else nbf.v4.new_code_cell(src) for kind, src in CELLS]
+    nb.cells = [nbf.v4.new_markdown_cell(src) if kind == "md" else nbf.v4.new_code_cell(src) for kind, src in (cells or CELLS)]
     return nb
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--execute", action="store_true")
+    ap.add_argument("--only", choices=["v1", "v2"])
     args = ap.parse_args()
-    nb = build()
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    if args.execute:
-        from nbconvert.preprocessors import ExecutePreprocessor
+    for name, cells, out in (("v1", CELLS, OUT), ("v2", CELLS_V2, OUT_V2)):
+        if args.only and args.only != name:
+            continue
+        nb = build(cells)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        if args.execute:
+            from nbconvert.preprocessors import ExecutePreprocessor
 
-        ExecutePreprocessor(timeout=900, kernel_name="python3").preprocess(nb, {"metadata": {"path": str(OUT.parent)}})
-    nbf.write(nb, OUT)
-    print(f"wrote {OUT}")
+            ExecutePreprocessor(timeout=1200, kernel_name="python3").preprocess(nb, {"metadata": {"path": str(out.parent)}})
+        nbf.write(nb, out)
+        print(f"wrote {out}")
 
 
 if __name__ == "__main__":
