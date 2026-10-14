@@ -2,7 +2,7 @@
 
 > Generated from `research/references/library.json` by `scripts/render_research_docs.py`. Edit the data, not this file.
 
-38 sources, checked on 2026-10-13 against bibliographic records via web search (publisher pages, PubMed, RePEc, institutional repositories). Crossref could not be queried from the build environment, so each entry states what was confirmed. Findings are paraphrased; consult the source before relying on specific figures.
+42 sources, checked on 2026-10-13 against bibliographic records via web search (publisher pages, PubMed, RePEc, institutional repositories). Crossref could not be queried from the build environment, so each entry states what was confirmed. Findings are paraphrased; consult the source before relying on specific figures.
 
 ## Synthesis
 
@@ -343,4 +343,38 @@ OAIC guidance. [https://www.oaic.gov.au/privacy/privacy-guidance-for-organisatio
 - **Limitations:** Law reform status not confirmed in this session.
 - **Relevance:** MeritVector should not rely on the exemption; it designs to APP standards (notice, use limitation, access, correction).
 - **Design implication:** Notice, purpose limitation, access and correction workflows exist regardless of the exemption.
+
+## E. Public real-world datasets
+
+### Huijgens, H. (2017). *Evidence-Based Software Portfolio Management (EBSPM) Research Repository (version 1)*
+4TU.ResearchData (dataset). [doi:10.4121/uuid:42fd1be1-325f-47a4-ba39-31af35ca7f75](https://doi.org/10.4121/uuid:42fd1be1-325f-47a4-ba39-31af35ca7f75) — DOI confirmed · dataset
+
+- **Main finding:** Records of finalised software projects from four anonymised companies with size, cost, duration, defects and binary context flags (dependencies, migration, regulation-driven, team stability).
+- **Limitations:** Context flags are recorded inconsistently between companies; quality and satisfaction outcomes are sparse. 4TU General Terms of Use apply.
+- **Relevance:** Largest public project dataset with organisation identifiers and context flags; tests whether raw comparisons between delivery units survive context adjustment.
+- **Design implication:** Used in the real-world validation studies; not redistributed — fetched and checksum-verified at run time.
+
+### Maxwell, K. D. (2002). *Applied Statistics for Software Managers*
+Prentice Hall. [https://www.informit.com/store/applied-statistics-for-software-managers-9780130417893](https://www.informit.com/store/applied-statistics-for-software-managers-9780130417893) — Citation confirmed (DOI not confirmed) · dataset
+
+- **Main finding:** Book appendix datasets, including development projects from a large Finnish commercial bank (1985–1993) with size, effort, duration and fifteen 1–5 ratings of project and staff factors.
+- **Limitations:** Subjective factor ratings; one organisation; about 62 projects (copies differ by one record).
+- **Relevance:** Separates context ratings (requirements volatility, complexity, staff availability) from staff-skill ratings.
+- **Design implication:** Used to compare how much productivity variation context explains versus staff skills.
+
+### Desharnais, J.-M. (1989). *Analyse statistique de la productivité des projets informatiques à partir de la technique des points de fonction*
+Master's thesis, University of Montreal (dataset distributed via the PROMISE repository). [https://arxiv.org/abs/1405.1131](https://arxiv.org/abs/1405.1131) — Citation confirmed (DOI not confirmed) · dataset
+
+- **Main finding:** 81 management-information-system projects from ten Canadian organisations (1983–1988) with team and manager experience in years, function points, language and effort; 77 complete records.
+- **Limitations:** Experience in years is a proxy for capability; pooled organisations; thesis copy not located (citation confirmed through studies that use the data).
+- **Relevance:** Rare public data with a project-manager variable; tests whether tenure relates to outcomes once size and context are accounted for.
+- **Design implication:** Supports MeritVector's refusal to treat tenure or experience as a proxy for contribution.
+
+### Menzies, T., et al. (PROMISE repository) (2008). *NASA93 software cost estimation data (COCOMO-81 format)*
+PROMISE Software Engineering Repository; archived on Zenodo. [https://zenodo.org/record/268419](https://zenodo.org/record/268419) — Citation confirmed (DOI not confirmed) · dataset
+
+- **Main finding:** 93 NASA projects (1971–1987) from five centres with 15 COCOMO effort multipliers, including analyst and programmer capability ratings, size in KLOC and effort in person-months.
+- **Limitations:** Capability ratings are estimator judgements; old technology context.
+- **Relevance:** Tests whether centres' raw productivity differences survive adjustment and how much capability ratings add.
+- **Design implication:** Used in the real-world validation studies.
 

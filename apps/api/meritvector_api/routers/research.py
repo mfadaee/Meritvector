@@ -78,6 +78,21 @@ def dags(p: Principal = Depends(current_principal)) -> dict:
     return yaml.safe_load((config_dir() / "research" / "dags.yaml").read_text())
 
 
+@router.get("/research/public-data")
+def public_data(p: Principal = Depends(current_principal)) -> dict:
+    """Public real-world datasets: provenance, terms of use, checksum and whether they are available locally."""
+    from meritvector_analytics.public_data import registry, sources
+    from meritvector_analytics.public_data.studies import STUDIES
+
+    reg = registry()
+    return {
+        "mirror": reg["mirror"],
+        "sources": [{"id": k, **s.spec, "available": s.available} for k, s in sources().items()],
+        "studies": [{"id": k, "title": t} for k, (t, _) in STUDIES.items()],
+        "fetch_command": "python -m meritvector_api.cli fetch-public-data",
+    }
+
+
 @router.get("/research/library")
 def library(p: Principal = Depends(current_principal)) -> dict:
     return load_library()
@@ -124,7 +139,7 @@ class RunIn(BaseModel):
 def _start(db: Session, p: Principal, workstream: str, params: dict[str, Any], reproduces: int | None = None) -> ResearchRun:
     if workstream not in lab.WORKSTREAMS:
         raise HTTPException(404, "Unknown workstream")
-    allowed = {"level", "scenario"}
+    allowed = {"level", "scenario", "study"}
     if set(params) - allowed:
         raise HTTPException(422, f"Unsupported parameters: {sorted(set(params) - allowed)}")
     run = ResearchRun(

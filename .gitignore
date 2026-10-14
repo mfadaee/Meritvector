@@ -28,6 +28,8 @@ next-env.d.ts
 data/synthetic/*
 !data/synthetic/README.md
 data/synthetic/hidden/
+data/public/*
+!data/public/README.md
 artifacts/
 *.db
 *.sqlite

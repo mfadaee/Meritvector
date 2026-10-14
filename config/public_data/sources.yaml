@@ -1,0 +1,117 @@
+# Public, real-world project datasets used to test MeritVector's measurement claims outside synthetic data.
+#
+# Files are NOT committed. `python scripts/fetch_public_data.py` downloads them from a pinned commit of a public
+# mirror, verifies the SHA-256 and caches them under data/public/ (gitignored). Each source records its origin,
+# terms of use and what its variables mean for the measurement ontology.
+#
+# Unit of analysis is the project (or the organisation running it). None of these datasets identify people, and
+# MeritVector never uses them to evaluate individuals.
+version: "1.0"
+mirror:
+  repository: https://github.com/danrodgar/DASE
+  commit: 37945fbc20797ce85327dec10591051d7c0a1f6f
+  licence: CC0-1.0 (repository); original terms of each dataset apply and are listed per source
+  base_url: https://raw.githubusercontent.com/danrodgar/DASE/37945fbc20797ce85327dec10591051d7c0a1f6f/datasets/effortEstimation
+sources:
+  ebspm:
+    title: Evidence-Based Software Portfolio Management (EBSPM) research repository
+    file: EBSPMdata.zip
+    member: EBSPMdata/EBSPM_Research_Repository_v07072017.csv
+    sha256: 7777366dfb95089779793eb306d6d41260c123a172cc7bb09a1317ac91644b22
+    origin: "Huijgens, H. (2017). EBSPM Research Repository, version 1. 4TU.ResearchData. doi:10.4121/uuid:42fd1be1-325f-47a4-ba39-31af35ca7f75"
+    terms: 4TU.ResearchData General Terms of Use — attribution required; used here for research, not redistributed
+    description: 492 finalised software projects from four anonymised companies (two banks, a telecom company, a small firm), 2008–2016.
+    unit: project; organisation is the delivery unit compared
+    roles:
+      unit: Organization
+      size: Functional_size_FP
+      outcomes: [Actual_cost_EUR, Actual_duration_months]
+      context: [Development_class, Development_method, Year_technical_go_live, Release_based_working, Once_only_project,
+                Multi_application_release, Phased_project, Dependencies_with_other_applications, Single_application,
+                Migration_project, Problems_with_external_supplier, Security_related_project, Package_with_customization,
+                Legacy_application, Technology_driven_project, Rules_and_regulations_driven_project, Business_driven_project,
+                Pilot_or_proof_of_concept]
+      team: [Fixed_experienced_team, Many_team_changes_unexperienced_team, Steady_heartbeat]
+    limitations:
+      - Context flags are recorded as present/absent by the original researchers; absence may mean "not recorded".
+      - Quality and satisfaction outcomes are too sparse (≤ 270 of 492) for the main analysis.
+  maxwell:
+    title: Maxwell — Finnish bank development projects
+    file: maxwell.arff
+    sha256: c8e6890150fa5d63d7e17de214495f311c6425778e48aca9cc1b793201c2a5a1
+    origin: "Maxwell, K. D. (2002). Applied Statistics for Software Managers. Prentice Hall (Appendix dataset); PROMISE repository copy"
+    terms: Published as a book appendix dataset for readers; widely redistributed via the PROMISE repository for research
+    description: 62 development projects at a large Finnish commercial bank, 1985–1993, with 15 rated project and staff factors.
+    unit: project
+    roles:
+      size: size_D
+      outcomes: [effort_D, duration_D]
+      context: [app, har, dba, ifc, source, nlan, telonuse, t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11]
+      team: [t12, t13, t14, t15]
+    factor_labels:
+      t01: Customer participation
+      t02: Development environment adequacy
+      t03: Staff availability
+      t04: Standards use
+      t05: Methods use
+      t06: Tools use
+      t07: Software logical complexity
+      t08: Requirements volatility
+      t09: Quality requirements
+      t10: Efficiency requirements
+      t11: Installation requirements
+      t12: Staff analysis skills
+      t13: Staff application knowledge
+      t14: Staff tool skills
+      t15: Staff team skills
+    limitations:
+      - Factor ratings are subjective 1–5 judgements recorded by the organisation.
+      - One organisation; small sample.
+  nasa93:
+    title: NASA93 — NASA software projects (COCOMO format)
+    file: nasa93.arff
+    sha256: bcc97ecc9ab3f0f05da692075288d682478866bf8a7bb2b779b6b8de617d41d5
+    origin: "PROMISE Software Engineering Repository, nasa93 (Menzies et al.); 93 projects from NASA centres, 1971–1987"
+    terms: Public research dataset distributed by the PROMISE repository
+    description: 93 NASA projects with COCOMO-81 effort multipliers, size in KLOC and effort in person-months.
+    unit: project; NASA centre is the delivery unit compared
+    roles:
+      unit: center
+      size: equivphyskloc
+      outcomes: [act_effort]
+      context: [mode, rely, data, cplx, time, stor, virt, turn, tool, sced, modp, year, cat2]
+      team: [acap, pcap, aexp, vexp, lexp]
+    limitations:
+      - Capability ratings (acap, pcap…) are estimator judgements, not measurements.
+      - Old projects; technology context differs from today.
+  desharnais:
+    title: Desharnais — Canadian MIS projects
+    file: desharnais.arff
+    sha256: 9bef65a006386a0b23afbbb001153a3c2af7a77ecae6f97587df223cdddfa80d
+    origin: "Desharnais, J.-M. (1989). Analyse statistique de la productivité des projets informatiques à partir de la technique des points de fonction. Master's thesis, University of Montreal; PROMISE repository copy"
+    terms: Public research dataset distributed by the PROMISE repository
+    description: 81 management-information-system projects from ten Canadian organisations, 1983–1988 (77 complete).
+    unit: project
+    roles:
+      size: PointsAdjust
+      outcomes: [Effort]
+      context: [Language, Envergure, YearEnd]
+      team: [TeamExp, ManagerExp]
+    limitations:
+      - Four projects have missing experience values and are excluded.
+      - Experience is measured in years — a proxy, not capability.
+  china:
+    title: China — function-point projects
+    file: china.arff
+    sha256: a472f7f22ac96af7f87dbaaa3110715ea47a399b2b3a7ba82ad88e4456851e12
+    origin: "PROMISE Software Engineering Repository, China dataset (made available 2010)"
+    terms: Public research dataset distributed by the PROMISE repository
+    description: 499 projects with function-point components, resource level, duration and effort.
+    unit: project
+    roles:
+      size: AFP
+      outcomes: [Effort, Duration]
+      context: [Resource, DevType, AdjFactor, Added, Changed, Deleted]
+      team: []
+    limitations:
+      - No people or team variables; used to test model generalisation and over-fitting only.

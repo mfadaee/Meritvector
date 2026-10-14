@@ -15,6 +15,9 @@ Evidence-based workforce intelligence MVP. **All data is synthetic.** Decision s
 - `config/` — editable measurement definitions (ontology, job families, research questions/hypotheses).
   Code reads them via `meritvector_analytics.measurement`; regenerate schemas/docs with
   `python scripts/export_schemas.py` and `python scripts/render_research_docs.py` (tests fail if stale).
+- `config/public_data/sources.yaml` — public real-world datasets (pinned commit + SHA-256). Fetch with
+  `python scripts/fetch_public_data.py`; never commit the files (`data/public/` is gitignored). Studies live in
+  `meritvector_analytics.public_data.studies`; CI sets `MV_REQUIRE_PUBLIC_DATA=1`.
 - `research/references/library.json` — evidence library, built by `research/references/library.py`. Only add
   sources whose citation you have checked; record what was confirmed in `verification`.
 

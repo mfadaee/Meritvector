@@ -113,11 +113,19 @@ the `model_runs` table.
   30-day milestone-risk classifier PR-AUC 0.85, clustering, growth models, causal DAGs, experiment design) and six
   synthetic scenarios with known truth. See [RESEARCH_LAB_FINDINGS](docs/research/RESEARCH_LAB_FINDINGS.md).
 
+* **Real-world check on public data** (EBSPM, Maxwell, NASA93, Desharnais, China; 1,200+ real projects): measured
+  context explains roughly 4–30× more of the variation in productivity than team or capability indicators. Raw team
+  comparisons overstate effects: "fixed, experienced team" projects cost 47% less per function point on raw figures
+  but 9% less [−38%, +32%] after adjustment. Models do not transfer across organisations. See
+  [PUBLIC_DATA_VALIDATION](docs/research/PUBLIC_DATA_VALIDATION.md); fetch the data with
+  `python scripts/fetch_public_data.py` (pinned, checksum-verified, not committed).
+
 Full details: [MODEL_CARD](docs/research/MODEL_CARD.md).
 
 ## Known limitations
 
-* Synthetic data only; the data-generating process is simpler than real organisations.
+* Person-level estimates are validated on synthetic data only. Public real-world data supports the project- and
+  organisation-level claims, but no public dataset can validate estimates about individuals.
 * Demo sign-in has no passwords; SSO is required before any real use (v0.3).
 * Connectors are mocks; no external system is contacted and no message ever leaves the process.
 * The coordinator is rule-based; it handles `Speaker: text` transcripts with common phrasings only.

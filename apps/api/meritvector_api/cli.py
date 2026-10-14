@@ -36,6 +36,7 @@ def main(argv: list[str] | None = None) -> None:
     j.add_argument("name")
     w = sub.add_parser("worker")
     w.add_argument("--interval", type=int, default=60)
+    sub.add_parser("fetch-public-data", help="download the public real-world datasets (checksum-verified)")
     s = sub.add_parser("serve")
     s.add_argument("--host", default="0.0.0.0")  # noqa: S104 - container entrypoint
     s.add_argument("--port", type=int, default=8000)
@@ -50,6 +51,13 @@ def main(argv: list[str] | None = None) -> None:
         ds = generate(cfg)
         out = ds.write(args.out)
         print(json.dumps({"written_to": str(out), **ds.metadata}, indent=2, default=str))
+        return
+    if args.cmd == "fetch-public-data":
+        from meritvector_analytics.public_data import fetch, sources
+
+        for sid in sources():
+            path = fetch(sid)
+            print(f"{sid}: {path} (sha256 verified)")
         return
     if args.cmd == "serve":
         import uvicorn

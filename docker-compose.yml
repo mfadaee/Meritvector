@@ -23,7 +23,7 @@ services:
       MV_DEMO_AUTH: ${MV_DEMO_AUTH:-true}
       MV_CORS_ORIGINS: ${MV_CORS_ORIGINS:-http://localhost:3000}
       MV_LLM_PROVIDER: ${MV_LLM_PROVIDER:-deterministic}
-    volumes: [artifacts:/app/artifacts, synthetic:/app/data/synthetic]
+    volumes: [artifacts:/app/artifacts, synthetic:/app/data/synthetic, publicdata:/app/data/public]
     depends_on: { db: { condition: service_healthy } }
     ports: ["8000:8000"]
 
@@ -31,7 +31,7 @@ services:
     image: meritvector-api:0.1.0
     environment: *api-env
     command: ["python", "-m", "meritvector_api.cli", "worker", "--interval", "60"]
-    volumes: [artifacts:/app/artifacts, synthetic:/app/data/synthetic]
+    volumes: [artifacts:/app/artifacts, synthetic:/app/data/synthetic, publicdata:/app/data/public]
     depends_on: { api: { condition: service_healthy } }
     healthcheck: { disable: true }
 
@@ -48,3 +48,4 @@ volumes:
   pgdata:
   artifacts:
   synthetic:
+  publicdata:

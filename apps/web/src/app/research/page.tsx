@@ -7,7 +7,7 @@ import { api, ApiError, apiText, post, useApi } from "@/lib/api";
 import { label } from "@/lib/format";
 import type { AnyRec } from "@/lib/types";
 
-type Tab = "lab" | "questions" | "measurement" | "dags" | "library";
+type Tab = "lab" | "public" | "questions" | "measurement" | "dags" | "library";
 const SCENARIOS = ["A", "B", "C", "D", "E", "F"];
 const STATUS_TONE: Record<string, "neutral" | "good" | "warn" | "critical" | "accent"> = { queued: "neutral", running: "accent", completed: "good", failed: "critical" };
 
@@ -265,6 +265,55 @@ function Library() {
   );
 }
 
+function PublicData() {
+  const { data, error, loading } = useApi<AnyRec>("/research/public-data");
+  const [selected, setSelected] = useState<number | null>(null);
+  const [err, setErr] = useState<ApiError | null>(null);
+  if (loading) return <Loading />;
+  if (error || !data) return <ErrorState error={error} />;
+  const ready = (data.sources as AnyRec[]).every((s) => s.available);
+  const start = async (study: string) => {
+    setErr(null);
+    try { const r = await post<AnyRec>("/research/runs", { workstream: "public_data", params: { study } }); setSelected(r.id); } catch (e) { setErr(e as ApiError); }
+  };
+  const reproduce = async (id: number) => {
+    try { const r = await post<AnyRec>(`/research/runs/${id}/reproduce`, {}); setSelected(r.id); } catch (e) { setErr(e as ApiError); }
+  };
+  return (
+    <div className="space-y-4">
+      <Notice>
+        Real project records from public research datasets test the product&apos;s core claims outside synthetic data: that raw delivery
+        metrics mostly reflect conditions, that comparisons between delivery units change once context is accounted for, and that
+        team or capability signals are smaller and less certain than context. Units are projects and organisations — no dataset
+        identifies people, and nothing here evaluates anyone.
+      </Notice>
+      {!ready && <Notice tone="warn">Some datasets have not been downloaded yet. An administrator can run <code>{data.fetch_command}</code> (downloads from a pinned public commit and verifies checksums).</Notice>}
+      <ErrorState error={err} />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card title="Studies" subtitle="Each run records the dataset checksums it used.">
+          <ul className="space-y-1">
+            {[{ id: "all", title: "All studies + cross-dataset summary (about 2 minutes)" }, ...data.studies].map((s: AnyRec) => (
+              <li key={s.id} className="flex items-center justify-between gap-2 text-sm">
+                <span>{s.title}</span>
+                <button type="button" disabled={!ready} onClick={() => start(s.id)} className="shrink-0 rounded-md border border-line px-2 py-0.5 text-xs text-accent hover:bg-bg disabled:opacity-40">Run</button>
+              </li>
+            ))}
+          </ul>
+        </Card>
+        <div className="lg:col-span-2">{selected ? <RunDetail key={selected} id={selected} onReproduce={reproduce} /> : <Empty>Run a study to see its results.</Empty>}</div>
+      </div>
+      <Card title="Datasets" subtitle={<>Downloaded from <a className="text-accent hover:underline" href={data.mirror.repository} target="_blank" rel="noreferrer">{data.mirror.repository}</a> at commit <code>{String(data.mirror.commit).slice(0, 12)}</code> — {data.mirror.licence}</>}>
+        <Table head={["Dataset", "Origin", "Terms of use", "Limitations", "Status"]} rows={(data.sources as AnyRec[]).map((s) => [
+          <span key="t"><span className="font-medium">{s.title}</span><span className="block text-xs text-muted">{s.description}</span></span>,
+          <span key="o" className="text-xs">{s.origin}</span>, <span key="u" className="text-xs text-muted">{s.terms}</span>,
+          <span key="l" className="text-xs text-muted">{(s.limitations ?? []).join(" ")}</span>,
+          <Badge key="s" tone={s.available ? "good" : "warn"}>{s.available ? "● verified" : "▲ not downloaded"}</Badge>,
+        ])} />
+      </Card>
+    </div>
+  );
+}
+
 export default function ResearchPage() {
   const { data, error, loading } = useApi<AnyRec>("/research/overview");
   const [tab, setTab] = useState<Tab>("lab");
@@ -276,10 +325,11 @@ export default function ResearchPage() {
       <Notice tone="warn">{Object.entries(data.status_legend as Record<string, string>).map(([k, v]) => `${label(k)}: ${v}.`).join(" ")} Nothing here is a finding about a real organisation.</Notice>
       <div className="mt-4">
         <Tabs<Tab> value={tab} onChange={setTab} tabs={[
-          { id: "lab", label: "Laboratory" }, { id: "questions", label: "Questions & hypotheses" }, { id: "measurement", label: "Measurement framework" },
+          { id: "lab", label: "Laboratory" }, { id: "public", label: "Real-world data" }, { id: "questions", label: "Questions & hypotheses" }, { id: "measurement", label: "Measurement framework" },
           { id: "dags", label: "Causal diagrams" }, { id: "library", label: "Evidence library" },
         ]} />
         {tab === "lab" && <Laboratory overview={data} />}
+        {tab === "public" && <PublicData />}
         {tab === "questions" && <Questions overview={data} />}
         {tab === "measurement" && <Measurement />}
         {tab === "dags" && <Dags />}

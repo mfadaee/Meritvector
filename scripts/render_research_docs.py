@@ -21,6 +21,7 @@ AREAS = {
     "causal_inference": "C2. Causal inference",
     "machine_learning": "C3. Machine learning practice",
     "governance": "D. Responsible AI, privacy and employment law",
+    "public_data": "E. Public real-world datasets",
 }
 VERIF = {
     "doi_confirmed": "DOI confirmed",

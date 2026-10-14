@@ -51,6 +51,7 @@ ignore = ["S101", "S311", "B008"]
 "tests/**" = ["S"]
 "research/references/library.py" = ["E501"]  # bibliographic data
 "scripts/render_research_docs.py" = ["E501"]  # document text
+"packages/analytics/meritvector_analytics/public_data/studies.py" = ["E501"]  # plain-language result text
 
 [tool.ruff.lint.isort]
 known-first-party = ["meritvector_shared", "meritvector_analytics", "meritvector_coordinator", "meritvector_connectors", "meritvector_api"]

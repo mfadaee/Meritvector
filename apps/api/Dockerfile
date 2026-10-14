@@ -14,14 +14,15 @@ COPY config ./config
 COPY research/references ./research/references
 RUN pip install . \
     && useradd --create-home --uid 10001 meritvector \
-    && mkdir -p /app/artifacts /app/data/synthetic \
+    && mkdir -p /app/artifacts /app/data/synthetic /app/data/public \
     && chown -R meritvector /app
 
 USER meritvector
 ENV MV_DATA_DIR=/app/data/synthetic \
     MV_ARTIFACT_DIR=/app/artifacts/models \
     MV_CONFIG_DIR=/app/config \
-    MV_RESEARCH_DIR=/app/research
+    MV_RESEARCH_DIR=/app/research \
+    MV_PUBLIC_DATA_DIR=/app/data/public
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=180s --retries=30 \
   CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"
