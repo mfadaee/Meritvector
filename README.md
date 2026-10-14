@@ -1,5 +1,8 @@
 # MeritVector
 
+> ### ▶ [Try the live demo](https://mfadaee.github.io/Meritvector/)
+> Runs in your browser with no install: sign in as an employee, manager, HR reviewer, administrator or researcher and explore the dashboards, the context-adjusted evidence and the AI Coordinator. All data is synthetic.
+
 **Evidence-based workforce intelligence for programme and project management offices — v0.1 (MVP).**
 
 MeritVector combines two things that are kept deliberately separate:
@@ -32,6 +35,13 @@ employees, managers, HR reviewers and administrators. The architecture supports 
 | Flagship experiment | Two-employee context experiment with sensitivity analysis and an explicit verdict; reproducible notebook |
 | Coordinator | Deterministic meeting intelligence, briefings, reports, reminders, dependency checks; optional LLM interface (no LLM required) |
 | Product | FastAPI + PostgreSQL backend, Next.js dashboard with 10 pages, RBAC, governance gate, audit log, correction workflow, append-only review notes, retention jobs |
+
+## Live demo (GitHub Pages)
+
+[`index.html`](index.html) is a self-contained demo served by GitHub Pages from `main` (root). Its data comes from this
+repository's own synthetic generator and analytics (`python scripts/build_pages_demo.py` rebuilds it). Person-level
+estimates in the demo use the within-person context coefficients with simple shrinkage instead of the full mixed-effects
+model, and say so; the AI Coordinator is a line-for-line port of `meritvector_coordinator.extraction`.
 
 ## Quick start (Docker)
 
