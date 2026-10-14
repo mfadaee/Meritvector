@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from meritvector_analytics.narrative import contribution_narrative
 from meritvector_api import audit
 from meritvector_api.db import get_db
 from meritvector_api.models import Employee, EmployeeRunOutput, EvidenceEventRow, Project, ReviewNote
@@ -155,6 +156,7 @@ def contribution(employee_id: str, p: Principal = Depends(require_assessment_ena
         "bootstrap_ci": payload.get("bootstrap_ci"),
         "projects": [to_dict(x) for x in projects],
         "missing_information": missing,
+        "narrative": contribution_narrative(sched, payload.get("raw_metrics", {})),
         "review_notes": [to_dict(n) for n in notes],
         "can_add_review": can_review(p, emp),
         "interpretation": {

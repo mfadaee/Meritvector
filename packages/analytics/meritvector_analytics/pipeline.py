@@ -24,7 +24,7 @@ from meritvector_analytics.experiment import run_experiment
 from meritvector_analytics.features import FeatureSet, build_features, employee_activity_summary
 from meritvector_analytics.longitudinal import period_series, quarterly_series, sustained_quality, trends
 from meritvector_analytics.modelcard import render_model_card
-from meritvector_analytics.validation import fairness_audit, label_audit, run_validation
+from meritvector_analytics.validation import extended_fairness, fairness_audit, label_audit, run_validation
 
 
 @dataclass
@@ -120,6 +120,7 @@ def run_pipeline(
     fair = None
     if protected_attributes is not None and manager_ratings is not None and promotions is not None:
         fair = fairness_audit(protected_attributes, base, sched.raw, manager_ratings, promotions)
+        fair["extended"] = extended_fairness(protected_attributes, m, base, sched.ols)
 
     conclusions = base["conclusion"].value_counts().to_dict()
     metrics = _clean(

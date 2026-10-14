@@ -439,6 +439,92 @@ def fairness_audit(
     }
 
 
+def _group_gap(d: pd.DataFrame, col: str, a: str, b: str, rng: np.random.Generator, n_boot: int) -> dict[str, Any]:
+    da = d.loc[d["protected_group"] == a, col].dropna().to_numpy(float)
+    db = d.loc[d["protected_group"] == b, col].dropna().to_numpy(float)
+    boots = [rng.choice(da, len(da)).mean() - rng.choice(db, len(db)).mean() for _ in range(n_boot)]
+    lo, hi = float(np.percentile(boots, 2.5)), float(np.percentile(boots, 97.5))
+    return {
+        "difference": float(da.mean() - db.mean()),
+        "ci_low": lo,
+        "ci_high": hi,
+        "clear": bool(lo > 0 or hi < 0),
+        "comparison": f"{a} minus {b}",
+    }
+
+
+def extended_fairness(
+    protected: pd.DataFrame,
+    m: pd.DataFrame,
+    estimates: pd.DataFrame,
+    context_model: Any,
+    min_cell: int = MIN_FAIRNESS_CELL,
+    n_boot: int = 500,
+    seed: int = 1,
+) -> dict[str, Any]:
+    """Opportunity, missing-evidence and model-error comparisons between groups (aggregated only).
+
+    * Unequal opportunity — do groups get systematically different operating conditions (harder projects, fewer
+      resources)? Adjustment can only correct for conditions that are measured; unequal assignment is itself a
+      finding for HR, whatever the adjusted estimates say.
+    * Missing evidence — are estimates for one group more often abstentions, or built on fewer settled milestones?
+    * Model error — does the context model fit one group's milestones worse (mean absolute residual), and are its
+      intervals wider?
+    """
+    rng = np.random.default_rng(seed)
+    mm = m.dropna(subset=["schedule_variance_pct"]).copy()
+    mm["abs_residual"] = (mm["schedule_variance_pct"] - context_model.predict(mm)).abs()
+    person = mm.groupby("employee_id").agg(
+        mean_complexity=("technical_complexity", "mean"),
+        mean_resource_constraint=("resource_constraint", "mean"),
+        mean_dependencies=("dependency_count", "mean"),
+        settled_milestones=("milestone_id", "count"),
+        quality_missing_share=("quality_score", lambda s: float(s.isna().mean())),
+        mean_abs_residual=("abs_residual", "mean"),
+    )
+    hard = mm["technical_complexity"] >= mm["technical_complexity"].quantile(0.75)
+    person["difficult_share"] = hard.groupby(mm["employee_id"]).mean()
+    est = estimates.set_index("employee_id")
+    person = person.join(est[["conclusion"]], how="right")
+    person["abstained"] = (person["conclusion"] == "insufficient_evidence").astype(float)
+    person["interval_width"] = est["ci_high"] - est["ci_low"]
+    d = person.join(protected.set_index("employee_id")[["protected_group"]], how="inner")
+    names = sorted(d["protected_group"].unique())
+    sizes = d["protected_group"].value_counts()
+    if len(names) != 2 or (sizes < min_cell).any():
+        return {"suppressed": f"requires exactly two groups with at least {min_cell} people each"}
+    a, b = names
+    sections = {
+        "opportunity": ["mean_complexity", "difficult_share", "mean_resource_constraint", "mean_dependencies"],
+        "missing_evidence": ["abstained", "settled_milestones", "quality_missing_share"],
+        "model_error": ["mean_abs_residual", "interval_width"],
+    }
+    out: dict[str, Any] = {"groups": {g: int(n) for g, n in sizes.items()}, "comparison": f"{a} minus {b}"}
+    for sec, cols in sections.items():
+        out[sec] = {
+            c: {
+                "means": {g: float(d.loc[d["protected_group"] == g, c].mean()) for g in names},
+                **_group_gap(d, c, a, b, rng, n_boot),
+            }
+            for c in cols
+        }
+    flags = [f"{sec}: {c}" for sec in sections for c, v in out[sec].items() if v["clear"]]
+    out["flags"] = flags
+    out["finding"] = (
+        "Clear group differences in: " + "; ".join(flags) + ". Investigate assignment and measurement before relying on "
+        "any group comparison."
+        if flags
+        else "No clear group differences in project assignment, evidence coverage or model error at this sample size."
+    )
+    n_tests = sum(len(c) for c in sections.values())
+    out["multiple_comparisons"] = (
+        f"{n_tests} uncorrected comparisons at 95%: about {0.05 * n_tests:.1f} clear differences are expected by chance "
+        "alone, so a single flag is a prompt to look, not a finding."
+    )
+    out["governance"] = "Aggregated only; cells below the minimum size are suppressed."
+    return out
+
+
 def assert_training_frame_clean(df: pd.DataFrame) -> None:
     bad = sorted(set(df.columns) & set(FORBIDDEN_MODEL_COLUMNS))
     if bad:

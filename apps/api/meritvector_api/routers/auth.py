@@ -139,5 +139,6 @@ def me(p: Principal = Depends(current_principal), db: Session = Depends(get_db))
             "fairness_audit": p.role in ("hr_reviewer", "admin") and t.assessment_enabled,
             "administration": p.role in ("admin", "hr_reviewer"),
             "research": p.role in ("researcher", "hr_reviewer", "admin") and t.assessment_enabled,
+            "attribution_review": p.role in ("manager", "hr_reviewer"),
         },
     }

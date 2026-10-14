@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from meritvector_api import __version__
 from meritvector_api import db as dbm
-from meritvector_api.routers import admin, analysis, auth, coordinator, employees, evidence, portfolio, research, workspace
+from meritvector_api.routers import admin, analysis, auth, coordinator, deepwork, employees, evidence, portfolio, research, workspace
 from meritvector_api.settings import get_settings
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -33,7 +33,7 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH"],
         allow_headers=["Authorization", "Content-Type"],
     )
-    for r in (auth, workspace, coordinator, portfolio, evidence, employees, analysis, admin, research):
+    for r in (auth, workspace, coordinator, portfolio, evidence, employees, analysis, admin, research, deepwork):
         app.include_router(r.router)
 
     @app.on_event("startup")

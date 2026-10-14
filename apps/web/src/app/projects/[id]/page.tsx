@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { Bars } from "@/components/charts";
+import { EvidenceChains, ProjectDimensions } from "@/components/deepwork";
 import { Badge, Card, EmployeeLink, ErrorState, HealthBadge, Loading, PageHeader, SeverityBadge, Stat, Table } from "@/components/ui";
 import { useApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -42,6 +43,8 @@ export default function ProjectDetail() {
         <Card title="Dependencies">
           <Table head={["Depends on", "Raised", "Resolved", "Status"]} rows={data.dependencies.map((d: AnyRec) => [d.depends_on, date(d.raised_on), date(d.resolved_on), label(d.status)])} empty="No dependencies." />
         </Card>
+        <ProjectDimensions projectId={id} />
+        <EvidenceChains projectId={id} />
       </div>
     </div>
   );

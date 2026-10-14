@@ -15,10 +15,12 @@ from meritvector_coordinator.reports import (
     unresolved_dependencies,
     weekly_status_report,
 )
+from meritvector_coordinator.retrieval import Document, search
 
 __all__ = [
     "ActionItem",
     "DeterministicProvider",
+    "Document",
     "GenerationResult",
     "LLMProvider",
     "MeetingInsights",
@@ -30,6 +32,7 @@ __all__ = [
     "register_provider",
     "reminders",
     "resolve_date",
+    "search",
     "unresolved_dependencies",
     "weekly_status_report",
 ]
