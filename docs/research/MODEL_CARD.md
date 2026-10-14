@@ -93,6 +93,12 @@ slopes) does detect between-person variation in growth (LRT p ≈ 4e-29; SD ≈ 
   ratings only). The adjusted-evidence gap arises from sampling in this draw — the group was assigned independently of
   contribution — and illustrates why audits report intervals and why group results say nothing about individuals.
 
+## Real-world evidence (public data)
+On 1,200+ real projects from five public datasets, the claims the model rests on hold at project and organisation
+level: context dominates raw outcomes, raw team and unit comparisons are distorted, and models must be calibrated
+within each organisation. See [PUBLIC_DATA_VALIDATION](PUBLIC_DATA_VALIDATION.md). These data cannot validate
+individual estimates.
+
 ## Flagship experiment (two-person, v0.1 design)
 A (simple, well-resourced projects; on-time 95%) vs B (complexity 4.6, resource shortfall 0.57, 5.2 dependencies;
 on-time 0%). Unadjusted, A is 23 pp ahead. With the v0.2 model, B's estimate is +8.1 pp [1.2, 14.9] ("above context

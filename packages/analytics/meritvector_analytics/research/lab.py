@@ -49,6 +49,23 @@ def _scenarios_all(rd: ResearchData, **_: Any) -> dict[str, Any]:
     }
 
 
+def _public_data(rd: ResearchData, study: str = "all", **_: Any) -> dict[str, Any]:
+    """Studies on public real-world project data — independent of the tenant's (synthetic) records."""
+    from meritvector_analytics.public_data import sources
+    from meritvector_analytics.public_data import studies as pub
+
+    srcs = sources()
+    checksums = {k: v.spec["sha256"] for k, v in srcs.items()}
+    if study == "all":
+        out = pub.run_all(n_boot=200)
+        out["plain_language"] = out["summary"]["interpretation"]
+    elif study in pub.STUDIES:
+        out = pub.STUDIES[study][1]()
+    else:
+        raise KeyError(f"unknown public-data study {study!r}")
+    return {**out, "data_source": "public real-world data (not the tenant's records)", "dataset_checksums": checksums}
+
+
 WORKSTREAMS: dict[str, tuple[str, Callable[..., dict[str, Any]]]] = {
     "eda_variables": ("EDA — variable distributions", lambda rd, level="employee", **_: eda.variables(rd, level)),
     "eda_correlations": ("EDA — correlations", lambda rd, level="employee", **_: eda.correlations(rd, level)),
@@ -65,6 +82,7 @@ WORKSTREAMS: dict[str, tuple[str, Callable[..., dict[str, Any]]]] = {
     "experiment": ("RQ10 — coordinator experiment (simulated)", lambda rd, **_: experiments.coordinator_experiment(rd.employees)),
     "scenario": ("Scenario lab — single scenario", _scenario),
     "scenarios": ("Scenario lab — all scenarios A–F", _scenarios_all),
+    "public_data": ("Real-world validation — public project datasets", _public_data),
 }
 
 

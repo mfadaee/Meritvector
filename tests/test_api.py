@@ -309,3 +309,14 @@ def test_research_access_is_restricted(api_client):
     assert api_client.get("/measurement/metrics/unknown", headers=h).status_code == 404
     assert len(api_client.get("/research/library", headers=h).json()["entries"]) >= 30
     assert {f["id"] for f in api_client.get("/measurement/job-families", headers=h).json()} >= {"pmo", "engineering_example"}
+
+
+def test_public_data_catalogue_is_listed_with_provenance(api_client):
+    h = login(api_client, "u-SYN-RES")
+    r = api_client.get("/research/public-data", headers=h).json()
+    ids = {s["id"] for s in r["sources"]}
+    assert {"ebspm", "maxwell", "nasa93", "desharnais", "china"} <= ids
+    assert all(s["origin"] and s["terms"] and len(s["sha256"]) == 64 for s in r["sources"])
+    assert "fetch-public-data" in r["fetch_command"]
+    bad = api_client.post("/research/runs", json={"workstream": "public_data", "params": {"study": "x", "sql": 1}}, headers=h)
+    assert bad.status_code == 422

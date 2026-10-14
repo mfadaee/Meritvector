@@ -28,7 +28,11 @@ jobs:
         run: ruff check . && ruff format --check .
       - name: Secret scan
         run: python scripts/check_secrets.py
-      - name: Tests (unit, API integration, full-size model validation)
+      - name: Fetch public real-world datasets (pinned commit, checksum-verified)
+        run: python scripts/fetch_public_data.py
+      - name: Tests (unit, API integration, full-size model validation, public-data studies)
+        env:
+          MV_REQUIRE_PUBLIC_DATA: "1"
         run: pytest -q
       - name: Execute flagship experiment notebook
         run: python scripts/build_notebook.py --execute
