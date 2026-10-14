@@ -125,7 +125,10 @@ the `model_runs` table.
   [PUBLIC_DATA_VALIDATION](docs/research/PUBLIC_DATA_VALIDATION.md); fetch the data with
   `python scripts/fetch_public_data.py` (pinned, checksum-verified, not committed).
 
-Full details: [MODEL_CARD](docs/research/MODEL_CARD.md).
+Full details: [MODEL_CARD](docs/research/MODEL_CARD.md). Product: [PRD](docs/product/PRD.md) ·
+[MVP scope and pilot criteria](docs/product/MVP_SCOPE.md) · [personas](docs/product/CUSTOMER_PERSONAS.md) ·
+[commercial strategy](docs/product/COMMERCIAL_STRATEGY.md) · [pricing hypotheses](docs/product/PRICING_HYPOTHESES.md).
+Scheduled research runs and rules for unattended development: [SCHEDULED_DEVELOPMENT](docs/architecture/SCHEDULED_DEVELOPMENT.md).
 
 ## Known limitations
 
