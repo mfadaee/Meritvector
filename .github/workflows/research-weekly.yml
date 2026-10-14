@@ -1,0 +1,79 @@
+name: Weekly research run
+
+# Safe unattended research job. It re-runs the full test suite, the flagship study and the public-data studies on a
+# schedule and publishes the results as workflow artifacts and a job summary.
+#
+# Safety properties (see docs/architecture/SCHEDULED_DEVELOPMENT.md):
+# - read-only token: it cannot push, open PRs, comment or change settings;
+# - no secrets are used; the only network access is package installation and the pinned, checksum-verified
+#   public datasets;
+# - it never deploys anything and never touches real employee data.
+on:
+  schedule:
+    - cron: "17 3 * * 1" # Mondays 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: research-weekly
+  cancel-in-progress: false
+
+jobs:
+  research:
+    name: Tests, flagship study and public-data studies
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - name: Fetch public real-world datasets (pinned commit, checksum-verified)
+        run: python scripts/fetch_public_data.py
+      - name: Full test suite
+        env:
+          MV_REQUIRE_PUBLIC_DATA: "1"
+        run: pytest -q
+      - name: Flagship study
+        run: python scripts/run_flagship.py --n-boot 200
+      - name: Public-data studies
+        run: |
+          python - <<'PY'
+          import json, warnings
+          warnings.filterwarnings("ignore")
+          from meritvector_analytics.public_data.studies import run_all
+          r = run_all(n_boot=200)
+          json.dump(r, open("artifacts/public_data_results.json", "w"), indent=2, default=str)
+          print(r["summary"]["interpretation"])
+          PY
+      - name: Summarise and flag drift in the committed report
+        run: |
+          {
+            echo "## Weekly research run"
+            echo
+            if git diff --quiet -- docs/research/FLAGSHIP_REPORT.md; then
+              echo "Flagship report reproduces the committed version exactly."
+            else
+              echo "**Flagship report differs from the committed version.** Review the artifact and, if the change is"
+              echo "intended, regenerate the report in a pull request."
+              echo
+              echo '```diff'
+              git diff -- docs/research/FLAGSHIP_REPORT.md | head -80
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: research-results
+          path: |
+            artifacts/flagship/flagship_v2.json
+            artifacts/public_data_results.json
+            docs/research/FLAGSHIP_REPORT.md
+          retention-days: 30

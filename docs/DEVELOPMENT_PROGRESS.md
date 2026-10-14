@@ -11,7 +11,7 @@ Each work package is implemented, tested, committed, pushed, merged by pull requ
 | WP-C | Research Laboratory UI (runner, reproduce, export, registry, datasets, ontology, DAGs, library), "How was this assessed?", plain-English narratives, evidence chains with provenance, manual attribution + review, responsibility scope, knowledge retrieval, extended fairness audit | `feature/phase2-research-lab-ui` → [#4](https://github.com/mfadaee/Meritvector/pull/4) | Merged `465da25` |
 | WP-E | Real-world validation on public data (EBSPM, Maxwell, NASA93, Desharnais, China): pinned, checksum-verified fetch; five studies; Research Lab tab; CI runs them | `feature/public-data-validation` → [#5](https://github.com/mfadaee/Meritvector/pull/5) | Merged `a2e6747` |
 | WP-D1 | Flagship v2 (7 steps over all PMs; truth check in the evaluation harness; real-data replication): module, script, report, notebook, dashboard, API, tests | `feature/flagship-v2` | In review |
-| WP-D2 | Product and commercial docs; safe scheduled research workflow | — | Pending |
+| WP-D2 | Product docs (PRD, personas, MVP scope + pilot success criteria, commercial strategy, pricing hypotheses — no invented demand); weekly read-only research workflow; safe unattended-development rules | `feature/product-docs-and-schedule` | In review |
 
 ## How to resume
 1. `git fetch origin && git checkout main && git pull`.
