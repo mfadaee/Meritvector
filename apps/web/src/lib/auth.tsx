@@ -6,7 +6,7 @@ import { api, getToken, post, setToken } from "./api";
 export type Me = {
   user_id: string;
   display_name: string;
-  role: "employee" | "manager" | "hr_reviewer" | "admin";
+  role: "employee" | "manager" | "hr_reviewer" | "admin" | "researcher";
   employee_id: string | null;
   tenant: { id: string; name: string; is_synthetic: boolean; assessment_enabled: boolean; as_of: string };
   employee: { job_family: string; level: string; business_unit: string } | null;
@@ -72,4 +72,5 @@ export const ROLE_LABEL: Record<string, string> = {
   manager: "Manager",
   hr_reviewer: "HR reviewer",
   admin: "Administrator",
+  researcher: "Researcher",
 };

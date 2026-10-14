@@ -3,6 +3,8 @@
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { IntervalPlot, TrendLines } from "@/components/charts";
+import { ResponsibilityScope } from "@/components/deepwork";
+import { HowAssessed } from "@/components/explain";
 import { Badge, Button, Card, Empty, ErrorState, Loading, Notice, PageHeader, ProjectLink, Stat, Table } from "@/components/ui";
 import { ApiError, post, useApi } from "@/lib/api";
 import { CONCLUSION_TEXT, TREND_TEXT, date, label, num, pct, signed } from "@/lib/format";
@@ -30,6 +32,13 @@ export default function ContributionPage() {
         Decision support only. {data.interpretation.not_causal} {data.interpretation.human_review} This page does not rank, score for promotion or recommend any employment action.
       </Notice>
 
+      {data.narrative?.length > 0 && (
+        <Card title="In plain English" className="mt-4">
+          <div className="space-y-1 text-sm">{data.narrative.map((t: string) => <p key={t}>{t}</p>)}</div>
+          <HowAssessed metric="adjusted_schedule_estimate" />
+        </Card>
+      )}
+
       <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Achieved milestones" value={rm.milestones ?? 0} hint={`${rm.projects_led ?? 0} projects led`} />
         <Stat label="Raw on-time rate" value={pct(rm.on_time_rate)} hint="Not adjusted for difficulty" />
@@ -48,6 +57,7 @@ export default function ContributionPage() {
               <div className="text-muted">Raw comparison would read {signed(s.raw_estimate)} pp vs the organisation mean.</div>
               {q && <div className="flex flex-wrap items-center gap-2"><span>Deliverable quality: <strong>{signed(q.adjusted_estimate, 2)}</strong> points (95% {signed(q.ci_low, 2)} to {signed(q.ci_high, 2)})</span><Badge>{CONCLUSION_TEXT[q.conclusion]}</Badge></div>}
               <div className="pt-2"><IntervalPlot items={intervals} /></div>
+              <HowAssessed metric="adjusted_schedule_estimate" />
             </div>
           ) : <Empty>Insufficient historical data.</Empty>}
         </Card>
@@ -64,7 +74,8 @@ export default function ContributionPage() {
           <div className="mb-2 flex flex-wrap gap-1">{Object.entries(data.observed_evidence.validation_status as Record<string, number>).map(([k, v]) => <Badge key={k} tone={k === "disputed" ? "warn" : "neutral"}>{k}: {v}</Badge>)}</div>
           <Table head={["Date", "Category", "Reference"]} rows={data.observed_evidence.recent.slice(0, 10).map((r: AnyRec) => [date(r.occurred_at), label(r.category), <code key="c" className="text-xs">{r.evidence_ref}</code>])} />
         </Card>
-        <Card title="Raw delivery metrics">
+        <ResponsibilityScope employeeId={id} />
+        <Card title="Raw delivery metrics" subtitle="Not adjusted for project difficulty">
           <Table head={["Metric", "Value"]} rows={[
             ["Deliverable quality (mean review score)", num(rm.quality_mean, 2)],
             ["First-pass approval rate", pct(rm.first_pass_approval_rate)],
@@ -75,6 +86,7 @@ export default function ContributionPage() {
             ["Stakeholder feedback (perception)", num(rm.stakeholder_feedback_mean, 2)],
             ["Mean complexity / resource constraint", `${num(rm.mean_complexity)} / ${num(rm.mean_resource_constraint, 2)}`],
           ]} />
+          <HowAssessed metric="on_time_rate" />
         </Card>
         <Card title="Competency evidence" subtitle="Evidence in the last 12 months vs the expectation at this level">
           <Table head={["Competency", "12m", "Expected", "Status", "Examples"]} rows={data.competencies.map((c: AnyRec) => [

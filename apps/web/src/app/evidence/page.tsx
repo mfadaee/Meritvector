@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { AttributionPanel } from "@/components/deepwork";
 import { Badge, Button, Card, EmployeeLink, Empty, ErrorState, Loading, Notice, PageHeader, Table, Tabs } from "@/components/ui";
 import { ApiError, post, useApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { date, label } from "@/lib/format";
 import type { AnyRec } from "@/lib/types";
 
-type Tab = "mine" | "team" | "challenges";
+type Tab = "mine" | "team" | "challenges" | "accounts";
 
 export default function EvidencePage() {
   const { me } = useAuth();
@@ -17,6 +18,7 @@ export default function EvidencePage() {
     ...(me?.employee_id ? [{ id: "mine" as Tab, label: "My evidence" }] : []),
     ...(canTeam ? [{ id: "team" as Tab, label: me?.role === "hr_reviewer" ? "All employees" : "My team" }] : []),
     ...(me?.role !== "admin" ? [{ id: "challenges" as Tab, label: "Correction requests" }] : []),
+    ...(me?.employee_id || me?.permissions.attribution_review ? [{ id: "accounts" as Tab, label: "Contribution accounts" }] : []),
   ];
   return (
     <div>
@@ -26,6 +28,7 @@ export default function EvidencePage() {
       {tab === "mine" && me?.employee_id && <Mine />}
       {tab === "team" && canTeam && <Team />}
       {tab === "challenges" && me?.role !== "admin" && <Challenges canResolve={canTeam} />}
+      {tab === "accounts" && <div className="grid gap-4"><AttributionPanel /></div>}
     </div>
   );
 }

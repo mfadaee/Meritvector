@@ -68,6 +68,16 @@ def how_assessed(metric_id: str, family_id: str = "pmo", p: Principal = Depends(
     }
 
 
+@router.get("/research/dags")
+def dags(p: Principal = Depends(current_principal)) -> dict:
+    """Causal diagrams used by the causal workstream (assumptions made explicit, readable by everyone)."""
+    import yaml
+
+    from meritvector_analytics.measurement import config_dir
+
+    return yaml.safe_load((config_dir() / "research" / "dags.yaml").read_text())
+
+
 @router.get("/research/library")
 def library(p: Principal = Depends(current_principal)) -> dict:
     return load_library()

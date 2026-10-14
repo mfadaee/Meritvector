@@ -15,6 +15,7 @@ const NAV: { href: string; label: string; show?: (p: Record<string, boolean>) =>
   { href: "/evidence", label: "Contribution Evidence" },
   { href: "/analysis", label: "Contextual Analysis", show: (p) => p.analysis },
   { href: "/validation", label: "Model Validation", show: (p) => p.validation },
+  { href: "/research", label: "Research Laboratory", show: (p) => p.research },
   { href: "/admin", label: "Administration & Privacy" },
 ];
 
@@ -36,7 +37,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <aside className="sticky top-0 flex h-screen flex-col px-3 py-4">
         <Link href="/" className="mb-6 px-2">
           <div className="text-base font-semibold tracking-tight">MeritVector</div>
-          <div className="text-[11px] text-muted">Workforce intelligence · v0.1</div>
+          <div className="text-[11px] text-muted">Workforce intelligence · v0.2</div>
         </Link>
         <nav className="flex flex-1 flex-col gap-0.5" aria-label="Main">
           {NAV.filter((n) => !n.show || n.show(me.permissions)).map((n) => {

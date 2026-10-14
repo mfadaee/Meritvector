@@ -411,3 +411,41 @@ class ModelRegistryEntry(Base):
     dataset_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="registered")
     registered_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+# --------------------------------------------------------------- deep work intelligence (v0.2)
+class EvidenceLink(Base):
+    """A person-recorded link between two register records (e.g. a mitigation that protected a milestone)."""
+
+    __tablename__ = "evidence_links"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), index=True)
+    project_id: Mapped[str] = mapped_column(String(64), index=True)
+    from_type: Mapped[str] = mapped_column(String(16))
+    from_id: Mapped[str] = mapped_column(String(96))
+    to_type: Mapped[str] = mapped_column(String(16))
+    to_id: Mapped[str] = mapped_column(String(96))
+    relation: Mapped[str] = mapped_column(String(32))
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class Attribution(Base):
+    """A person's own account of their contribution to a record. Self-reported narrative — never model input."""
+
+    __tablename__ = "attributions"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), index=True)
+    employee_id: Mapped[str] = mapped_column(String(64), index=True)
+    project_id: Mapped[str] = mapped_column(String(64), index=True)
+    target_type: Mapped[str] = mapped_column(String(16))
+    target_id: Mapped[str] = mapped_column(String(96))
+    role: Mapped[str] = mapped_column(String(16))  # led | contributed | supported | advised
+    description: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), default="claimed")  # claimed | confirmed | disputed
+    review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reviewed_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    data_category: Mapped[str] = mapped_column(String(32), default="self_reported")

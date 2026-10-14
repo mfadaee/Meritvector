@@ -78,6 +78,7 @@ export default function ValidationPage() {
               {Object.entries(fair.gaps as Record<string, AnyRec>).map(([k, g]) => <div key={k} className="text-xs">{label(k)} gap ({g.comparison}): {num(g.difference, 2)} [95% {num(g.ci_low, 2)}, {num(g.ci_high, 2)}]</div>)}
               <p className="font-medium">{fair.finding}</p>
               <p className="text-xs text-muted">{fair.governance} Minimum cell size {fair.min_cell_size}.</p>
+              {fair.extended && <ExtendedFairness ext={fair.extended} />}
             </div>
           ) : <Notice>No fairness audit in this run.</Notice>}
         </Card>
@@ -96,6 +97,35 @@ export default function ValidationPage() {
           <Table head={["Version", "Created", "Data", "Best model", "Artifacts"]} rows={(runs.data ?? []).map((r) => [<code key="v" className="text-xs">{r.id}</code>, String(r.created_at).slice(0, 19), <code key="d" className="text-xs">{r.data_hash}</code>, label(r.best_model), <span key="a" className="text-xs text-muted">{r.artifact_path}</span>])} />
         </Card>
       </div>
+    </div>
+  );
+}
+
+const EXT_LABEL: Record<string, string> = {
+  mean_complexity: "Mean project complexity", difficult_share: "Share of milestones on the most complex projects",
+  mean_resource_constraint: "Mean resource shortfall", mean_dependencies: "Mean dependencies",
+  abstained: "Share with no conclusion (insufficient evidence)", settled_milestones: "Settled milestones per person",
+  quality_missing_share: "Share of quality scores missing", mean_abs_residual: "Context-model error (mean |residual|, pp)",
+  interval_width: "Width of 95% interval (pp)",
+};
+
+function ExtendedFairness({ ext }: { ext: AnyRec }) {
+  if (ext.suppressed) return <Notice>{ext.suppressed}</Notice>;
+  const sections: [string, string][] = [["opportunity", "Unequal opportunity — assignment of conditions"], ["missing_evidence", "Missing evidence"], ["model_error", "Model error by group"]];
+  const groups = Object.keys(ext.groups);
+  return (
+    <div className="mt-3 space-y-3 border-t border-line pt-3">
+      {sections.map(([k, title]) => (
+        <div key={k}>
+          <h3 className="mb-1 text-xs font-semibold uppercase text-muted">{title}</h3>
+          <Table head={["Measure", ...groups, `Gap (${ext.comparison}) [95%]`]} rows={Object.entries(ext[k] as Record<string, AnyRec>).map(([m, v]) => [
+            EXT_LABEL[m] ?? label(m), ...groups.map((g) => num(v.means[g], 2)),
+            <span key="g">{num(v.difference, 2)} [{num(v.ci_low, 2)}, {num(v.ci_high, 2)}] {v.clear && <Badge tone="warn">▲ clear difference</Badge>}</span>,
+          ])} />
+        </div>
+      ))}
+      <p className="font-medium">{ext.finding}</p>
+      <p className="text-xs text-muted">{ext.multiple_comparisons}</p>
     </div>
   );
 }

@@ -51,6 +51,14 @@ export async function api<T = unknown>(path: string, init: RequestInit = {}): Pr
   return (await res.json()) as T;
 }
 
+/** Fetch a text resource (e.g. a Markdown report) with the caller's credentials. */
+export async function apiText(path: string): Promise<string> {
+  const token = getToken();
+  const res = await fetch(`${API_URL}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) throw new ApiError(res.status, res.statusText);
+  return res.text();
+}
+
 export function post<T = unknown>(path: string, body: unknown): Promise<T> {
   return api<T>(path, { method: "POST", body: JSON.stringify(body) });
 }

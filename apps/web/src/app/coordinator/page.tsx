@@ -45,6 +45,8 @@ export default function CoordinatorPage() {
           {mgmt.data && <p className="mt-2 text-sm text-muted"><strong>Management summary:</strong> {mgmt.data.summary}</p>}
         </Card>
 
+        <KnowledgeSearch />
+
         <Card title="Process a meeting transcript" subtitle="Paste a Speaker: text transcript. Actions assigned to you become tasks.">
           <input aria-label="Meeting title" value={title} onChange={(e) => setTitle(e.target.value)} className="mb-2 w-full rounded-lg border border-line bg-raised px-2 py-1.5 text-sm" />
           <textarea aria-label="Transcript" value={transcript} onChange={(e) => setTranscript(e.target.value)} rows={9} className="w-full rounded-lg border border-line bg-raised p-2 font-mono text-xs" />
@@ -119,5 +121,34 @@ export default function CoordinatorPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function KnowledgeSearch() {
+  const [q, setQ] = useState("");
+  const [res, setRes] = useState<AnyRec | null>(null);
+  const [err, setErr] = useState<ApiError | null>(null);
+  return (
+    <Card title="Search your work" subtitle="Meetings you attended, their decisions, and the project, risk and dependency registers. Returns links to source records — nothing is generated." className="lg:col-span-2">
+      <form className="flex flex-wrap gap-2" onSubmit={async (e) => {
+        e.preventDefault(); setErr(null);
+        try { setRes(await api<AnyRec>(`/coordinator/search?q=${encodeURIComponent(q)}`)); } catch (x) { setErr(x as ApiError); }
+      }}>
+        <input aria-label="Search query" value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. vendor delay, firewall review, cutover" className="min-w-[240px] flex-1 rounded-lg border border-line bg-raised px-2 py-1.5 text-sm" />
+        <Button type="submit" disabled={q.trim().length < 2}>Search</Button>
+      </form>
+      <ErrorState error={err} />
+      {res && (
+        <div className="mt-3">
+          <p className="mb-2 text-xs text-muted">{res.results.length} results from {res.searched} records you can access.</p>
+          <ul className="space-y-2">{res.results.map((r: AnyRec) => (
+            <li key={r.id} className="text-sm">
+              <Badge>{r.kind}</Badge> <Link href={r.url} className="font-medium text-accent hover:underline">{r.title}</Link> <span className="text-xs text-muted">{date(r.date)} · matched: {r.matched_terms.join(", ")}</span>
+              <p className="text-xs text-muted">{r.snippet}</p>
+            </li>
+          ))}</ul>
+        </div>
+      )}
+    </Card>
   );
 }
